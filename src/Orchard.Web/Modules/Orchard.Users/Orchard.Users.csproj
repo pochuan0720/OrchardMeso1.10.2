@@ -56,6 +56,10 @@
     <Reference Include="Microsoft.Web.Infrastructure">
       <HintPath>..\..\..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
@@ -109,6 +113,7 @@
     <Compile Include="Activities\UserIsApprovedActivity.cs" />
     <Compile Include="Commands\UserCommands.cs" />
     <Compile Include="Controllers\AccountController.cs" />
+    <Compile Include="Controllers\AdminApiController .cs" />
     <Compile Include="Controllers\AdminController.cs" />
     <Compile Include="Controllers\AccountApiController.cs" />
     <Compile Include="Drivers\UserPartDriver.cs" />
@@ -140,10 +145,12 @@
     <Compile Include="Services\MissingSettingsBanner.cs" />
     <Compile Include="Services\UserService.cs" />
     <Compile Include="ViewModels\RegisterViewModel.cs" />
+    <Compile Include="ViewModels\UserEditApiViewModel.cs" />
     <Compile Include="ViewModels\UserProfileViewModel.cs" />
     <Compile Include="ViewModels\UserCreateViewModel.cs" />
     <Compile Include="ViewModels\UserEditPasswordViewModel.cs" />
     <Compile Include="ViewModels\UserEditViewModel.cs" />
+    <Compile Include="ViewModels\UsersIndexApiViewModel.cs" />
     <Compile Include="ViewModels\UsersIndexViewModel.cs" />
   </ItemGroup>
   <ItemGroup>

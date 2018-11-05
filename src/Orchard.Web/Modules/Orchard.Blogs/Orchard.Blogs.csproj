@@ -26,6 +26,7 @@
     <IISExpressWindowsAuthentication />
     <IISExpressUseClassicPipelineMode />
     <UseGlobalApplicationHostFile />
+    <Use64BitIISExpress />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -56,11 +57,16 @@
       <HintPath>..\..\..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
     <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Web" />
     <Reference Include="System.Web.ApplicationServices" />
     <Reference Include="System.Web.DynamicData" />
@@ -69,6 +75,9 @@
     <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.Helpers.dll</HintPath>
       <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Web.Http">
+      <HintPath>..\..\..\packages\Microsoft.AspNet.WebApi.Core.5.2.3\lib\net45\System.Web.Http.dll</HintPath>
     </Reference>
     <Reference Include="System.Web.Mvc, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Microsoft.AspNet.Mvc.5.2.3\lib\net45\System.Web.Mvc.dll</HintPath>
@@ -96,6 +105,10 @@
   <ItemGroup>
     <Compile Include="AdminMenu.cs" />
     <Compile Include="Commands\BlogWidgetCommands.cs" />
+    <Compile Include="Controllers\BlogAdminApiController.cs" />
+    <Compile Include="Controllers\BlogApiController.cs" />
+    <Compile Include="Controllers\BlogPostAdminApiController.cs" />
+    <Compile Include="Controllers\BlogPostApiController.cs" />
     <Compile Include="Controllers\RemoteBlogPublishingController.cs" />
     <Compile Include="Drivers\BlogArchivesPartDriver.cs" />
     <Compile Include="Drivers\RemoteBlogPublishingDriver.cs" />
@@ -103,6 +116,7 @@
     <Compile Include="Feeds\BlogPartFeedItemBuilder.cs" />
     <Compile Include="Handlers\BlogArchivesPartHandler.cs" />
     <Compile Include="Handlers\RecentBlogPostsPartHandler.cs" />
+    <Compile Include="Handlers\UpdateModelHandler.cs" />
     <Compile Include="Models\BlogArchivesPart.cs" />
     <Compile Include="Models\BlogArchivesPartRecord.cs" />
     <Compile Include="Models\RecentBlogPostsPart.cs" />
@@ -121,6 +135,7 @@
     <Compile Include="Handlers\BlogPartArchiveHandler.cs" />
     <Compile Include="Models\BlogPartArchiveRecord.cs" />
     <Compile Include="Permissions.cs" />
+    <Compile Include="Routing\ApiRoutes.cs" />
     <Compile Include="Routing\ArchiveConstraint.cs" />
     <Compile Include="Routing\IArchiveConstraint.cs" />
     <Compile Include="Routing\RsdConstraint.cs" />
@@ -143,7 +158,11 @@
     <Compile Include="Services\IBlogPostsCountProcessor.cs" />
     <Compile Include="Services\XmlRpcHandler.cs" />
     <Compile Include="ViewModels\BlogArchivesViewModel.cs" />
+    <Compile Include="ViewModels\BlogPostEditApiViewModel.cs" />
+    <Compile Include="ViewModels\BlogEditApiViewModel.cs" />
+    <Compile Include="ViewModels\BlogPostsIndexApiViewModel.cs" />
     <Compile Include="ViewModels\RecentBlogPostsViewModel.cs" />
+    <Compile Include="ViewModels\BlogsIndexApiViewModel.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\Admin\images\draft.gif" />

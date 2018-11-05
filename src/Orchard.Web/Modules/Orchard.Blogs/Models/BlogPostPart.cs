@@ -4,14 +4,17 @@ using Orchard.ContentManagement.Aspects;
 using Orchard.Core.Common.Models;
 using Orchard.Security;
 using Orchard.Core.Title.Models;
+using Newtonsoft.Json;
 
 namespace Orchard.Blogs.Models {
+    [JsonObject(MemberSerialization.OptIn)]
     public class BlogPostPart : ContentPart {
+        [JsonProperty]
         public string Title {
             get { return this.As<TitlePart>().Title; }
             set { this.As<TitlePart>().Title = value; }
         }
-
+        [JsonProperty]
         public string Text {
             get { return this.As<BodyPart>().Text; }
             set { this.As<BodyPart>().Text = value; }
@@ -21,16 +24,16 @@ namespace Orchard.Blogs.Models {
             get { return this.As<ICommonPart>().Container.As<BlogPart>(); }
             set { this.As<ICommonPart>().Container = value; }
         }
-
+        [JsonProperty]
         public IUser Creator {
             get { return this.As<ICommonPart>().Owner; }
             set { this.As<ICommonPart>().Owner = value; }
         }
-
+        [JsonProperty]
         public bool IsPublished {
             get { return ContentItem.VersionRecord != null && ContentItem.VersionRecord.Published; }
         }
-
+        [JsonProperty]
         public bool HasDraft {
             get {
                 return (
@@ -39,13 +42,13 @@ namespace Orchard.Blogs.Models {
                                (ContentItem.VersionRecord.Published && ContentItem.VersionRecord.Latest == false)));
             }
         }
-
+        [JsonProperty]
         public bool HasPublished {
             get {
                 return IsPublished || ContentItem.ContentManager.Get(Id, VersionOptions.Published) != null;
             }
         }
-
+        [JsonProperty]
         public DateTime? PublishedUtc {
             get { return this.As<ICommonPart>().PublishedUtc; }
         }

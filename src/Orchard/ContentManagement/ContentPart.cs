@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Web.Mvc;
 using Autofac;
+using Newtonsoft.Json;
 using Orchard.ContentManagement.MetaData.Models;
 using Orchard.ContentManagement.Records;
 using Orchard.ContentManagement.Utilities;
@@ -24,6 +25,7 @@ namespace Orchard.ContentManagement {
         /// <summary>
         /// The ContentItem's identifier.
         /// </summary>
+        [JsonRequired]
         [HiddenInput(DisplayValue = false)]
         public int Id {
             get { return ContentItem.Id; }

@@ -26,6 +26,7 @@
     <IISExpressWindowsAuthentication />
     <IISExpressUseClassicPipelineMode />
     <UseGlobalApplicationHostFile />
+    <Use64BitIISExpress />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -56,6 +57,10 @@
     <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
       <Private>True</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations">
@@ -98,6 +103,7 @@
     <Compile Include="Common\Controllers\ErrorController.cs" />
     <Compile Include="Common\DateEditor\DateEditorSettings.cs" />
     <Compile Include="Common\Extensions\CommonMetaDataExtensions.cs" />
+    <Compile Include="Common\Handlers\UpdateModelHandler.cs" />
     <Compile Include="Common\OwnerEditor\OwnerEditorSettings.cs" />
     <Compile Include="Common\OwnerEditor\OwnerEditorDriver.cs" />
     <Compile Include="Common\DateEditor\DateEditorDriver.cs" />
@@ -119,6 +125,7 @@
     <Compile Include="Common\Settings\TextFieldSettings.cs" />
     <Compile Include="Common\Utilities\DateUtils.cs" />
     <Compile Include="Common\ViewModels\DateTimeEditor.cs" />
+    <Compile Include="Common\ViewModels\ResultViewModel.cs" />
     <Compile Include="Common\ViewModels\TextFieldDriverViewModel.cs" />
     <Compile Include="Common\ViewModels\TextFieldSettingsEventsViewModel.cs" />
     <Compile Include="Containers\Controllers\ItemController.cs" />

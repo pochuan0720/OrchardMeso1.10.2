@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Newtonsoft.Json;
 using Orchard.ContentManagement;
 using Orchard.ContentManagement.Aspects;
 
