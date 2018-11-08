@@ -11,7 +11,6 @@ namespace Orchard.Blogs.ViewModels
     public class BlogPostsIndexApiViewModel
     {
         public IList<BlogPostPart> BlogPosts { get; set; }
-        public PagerParameters Pager { get; set; }
-        public int TotalCount { get; set; }
+        public Pager Pager { get; set; }
     }
 }

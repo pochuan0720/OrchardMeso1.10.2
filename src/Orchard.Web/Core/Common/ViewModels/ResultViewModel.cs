@@ -8,6 +8,7 @@ namespace Orchard.Core.Common.ViewModels
     public class ResultViewModel
     {
         public object Content { get; set; }
+        public bool Success { get; set; }
         public string Code { get; set; }
         public string Message { get; set; }
     }

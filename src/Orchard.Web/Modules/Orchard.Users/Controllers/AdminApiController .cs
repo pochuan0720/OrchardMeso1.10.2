@@ -60,15 +60,12 @@ namespace Orchard.Users.Controllers {
             string message = "";
             string code = "200";
 
-            UserIndexOptions options = inModel.Options;
-            PagerParameters pagerParameters = inModel.Pager;
-
-
-            var pager = pagerParameters != null ? new Pager(_siteService.GetSiteSettings(), pagerParameters) : null;
-
+            UserIndexOptions options;
             // default options
-            if (options == null)
+            if (inModel.Options == null)
                 options = new UserIndexOptions();
+            else
+                options = inModel.Options;
 
             var users = Services.ContentManager
                 .Query<UserPart, UserPartRecord>();
@@ -84,13 +81,14 @@ namespace Orchard.Users.Controllers {
                     users = users.Where(u => u.EmailStatus == UserStatus.Pending);
                     break;
             }
+            Pager pager = null;
+           if(inModel.Pager != null)
+                pager = new Pager(_siteService.GetSiteSettings(), inModel.Pager.Page,  inModel.Pager.PageSize, users.Count());
 
             if (!string.IsNullOrWhiteSpace(options.Search)) {
                 users = users.Where(u => u.UserName.Contains(options.Search) || u.Email.Contains(options.Search));
             }
 
-            var pagerShape = pager != null ? Shape.Pager(pager).TotalItemCount(users.Count()) : null;
-            int totalCount = users.Count();
             switch (options.Order) {
                 case UsersOrder.Name:
                     users = users.OrderBy(u => u.UserName);
@@ -110,11 +108,13 @@ namespace Orchard.Users.Controllers {
                 .Slice(pager.GetStartIndex(), pager.PageSize)
                 .ToList() : users.List();
 
+            pager.PageSize = results.ToList().Count;
+
             var model = new UsersIndexApiViewModel {
                 Users = results
                     .Select(x => x.Record)
                     .ToList(),
-                TotalCount = totalCount
+                Pager = pager
             };
 
             ResultViewModel outModel = new ResultViewModel { Content = model, Code = code, Message = message };
