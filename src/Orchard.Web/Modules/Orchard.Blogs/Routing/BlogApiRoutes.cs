@@ -28,14 +28,14 @@ namespace Orchard.Blogs.Routing
                   new HttpRouteDescriptor {
                         Name = "BlogApiRoute",
                         Priority = 20,
-                        RouteTemplate = "api/blogs/{action}/{blogId}",
+                        RouteTemplate = "api/blogs/{blogId}/{action}",
                         Defaults = new  { area = "Orchard.Blogs", controller = "BlogApi", blogId = RouteParameter.Optional}
                     },
                    new HttpRouteDescriptor {
                         Name = "BlogPostsApiRoute",
                         Priority = 20,
-                        RouteTemplate = "api/blogs/posts/{blogId}",
-                        Defaults = new  { area = "Orchard.Blogs", controller = "BlogApi", action = "posts", blogId = RouteParameter.Optional}
+                        RouteTemplate = "api/blogs/{blogId}/posts",
+                        Defaults = new  { area = "Orchard.Blogs", controller = "BlogApi", action = "posts"}
                     }
             };
         }

@@ -3,6 +3,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel;
 using Orchard.ContentManagement.Utilities;
+using Newtonsoft.Json;
 
 namespace Orchard.Comments.Models {
     public class CommentPart : ContentPart<CommentPartRecord> {
@@ -46,7 +47,7 @@ namespace Orchard.Comments.Models {
             get { return Record.CommentDateUtc; }
             set { Record.CommentDateUtc = value; }
         }
-
+        [JsonProperty]
         [Required, DisplayName("Comment")]
         public string CommentText {
             get { return Record.CommentText; }

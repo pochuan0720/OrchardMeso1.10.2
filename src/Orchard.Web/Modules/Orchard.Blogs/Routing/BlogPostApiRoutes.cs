@@ -16,19 +16,19 @@ namespace Orchard.Blogs.Routing
                   new HttpRouteDescriptor {
                         Name = "BlogCreatePostApiRoute",
                         Priority = 20,
-                        RouteTemplate = "api/blog/posts/create/{blogId}",
+                        RouteTemplate = "api/blogs/{blogId}/posts/create",
                         Defaults = new  { area = "Orchard.Blogs", controller = "BlogPostApi"}
                     },
                   new HttpRouteDescriptor {
                         Name = "BlogPostIndexApiRoute",
                         Priority = 20,
-                        RouteTemplate = "api/blog/posts/{blogId}/{postId}",
+                        RouteTemplate = "api/blogs/{blogId}/posts/{postId}",
                         Defaults = new  { area = "Orchard.Blogs", controller = "BlogPostApi", action = "index"}
                     },
                    new HttpRouteDescriptor {
                         Name = "BlogPostApiRoute",
                         Priority = 20,
-                        RouteTemplate = "api/blog/posts/{action}/{blogId}/{postId}",
+                        RouteTemplate = "api/blogs/{blogId}/posts/{postId}/{action}",
                         Defaults = new  { area = "Orchard.Blogs", controller = "BlogPostApi"}
                     },
             };
