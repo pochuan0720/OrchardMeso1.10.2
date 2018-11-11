@@ -53,6 +53,11 @@ namespace Orchard.MediaLibrary.Services {
             return _orchardServices.ContentManager.Query<MediaPart, MediaPartRecord>(versionOptions);
         }
 
+        public IEnumerable<MediaPart> GetMediaContentItems(string folderPath, string order, string mediaType, VersionOptions versionOptions = null)
+        {
+            return BuildGetMediaContentItemsQuery(_orchardServices.ContentManager, folderPath, order: order, mediaType: mediaType, versionOptions: versionOptions).List<MediaPart>();
+        }
+
         public IEnumerable<MediaPart> GetMediaContentItems(string folderPath, int skip, int count, string order, string mediaType, VersionOptions versionOptions = null) {
             return BuildGetMediaContentItemsQuery(_orchardServices.ContentManager, folderPath, order: order, mediaType: mediaType, versionOptions: versionOptions)
                 .Slice(skip, count);

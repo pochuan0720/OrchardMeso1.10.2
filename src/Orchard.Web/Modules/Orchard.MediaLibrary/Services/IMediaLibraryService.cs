@@ -11,6 +11,7 @@ namespace Orchard.MediaLibrary.Services {
     public interface IMediaLibraryService : IDependency {
         IEnumerable<ContentTypeDefinition> GetMediaTypes();
         IContentQuery<MediaPart, MediaPartRecord> GetMediaContentItems(VersionOptions versionOptions = null);
+        IEnumerable<MediaPart> GetMediaContentItems(string folderPath, string order, string mediaType, VersionOptions versionOptions = null);
         IEnumerable<MediaPart> GetMediaContentItems(string folderPath, int skip, int count, string order, string mediaType, VersionOptions versionOptions = null);
         IEnumerable<MediaPart> GetMediaContentItems(int skip, int count, string order, string mediaType, VersionOptions versionOptions = null);
         IEnumerable<MediaPart> GetMediaContentItemsRecursive(string folderPath, int skip, int count, string order, string mediaType, VersionOptions versionOptions = null);
