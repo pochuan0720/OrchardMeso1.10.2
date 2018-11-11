@@ -184,8 +184,8 @@ namespace Orchard.MediaLibrary.Controllers {
                 {
                     using (Stream stream = await content.ReadAsStreamAsync())
                     {
-                        byte[] bytes = new byte[stream.Length];
-                        stream.Read(bytes, 0, bytes.Length);
+                        //byte[] bytes = new byte[stream.Length];
+                        //stream.Read(bytes, 0, bytes.Length);
  
                         var mediaPart = _mediaLibraryService.ImportMedia(stream, folderPath, filename, null);
                         Services.ContentManager.Create(mediaPart);
