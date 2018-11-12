@@ -11,23 +11,35 @@ namespace Orchard.Users.Routing
         {
             return new[]{
                   new HttpRouteDescriptor {
-                        Name = "UserIndexAdminApiRoute",
+                        Name = "UserListApiRoute",
                         Priority = 20,
-                        RouteTemplate = "api/admin/users/{id}",
-                        Defaults = new  { area = "Orchard.Users", controller = "AdminApi", action = "index", id = RouteParameter.Optional}
+                        RouteTemplate = "api/users",
+                        Defaults = new  { area = "Orchard.Users", controller = "AccountApi", action = "list"}
+                    },
+                  new HttpRouteDescriptor {
+                        Name = "UserRegisterApiRoute",
+                        Priority = 20,
+                        RouteTemplate = "api/users/register",
+                        Defaults = new  { area = "Orchard.Users", controller = "AccountApi", action = "register"}
+                    },
+                  new HttpRouteDescriptor {
+                        Name = "UserIndexApiRoute",
+                        Priority = 20,
+                        RouteTemplate = "api/users/{id}",
+                        Defaults = new  { area = "Orchard.Users", controller = "AccountApi", action = "index", id = RouteParameter.Optional}
                     },
                  new HttpRouteDescriptor {
-						Name = "UserAdminApiRoute",
+						Name = "UserApiRoute",
 						Priority = 20,
-						RouteTemplate = "api/admin/users/{action}/{id}",
-						Defaults = new	{ area = "Orchard.Users", controller = "AdminApi", id = RouteParameter.Optional}		
+						RouteTemplate = "api/users/{id}/{action}",
+						Defaults = new	{ area = "Orchard.Users", controller = "AccountApi", id = RouteParameter.Optional}		
 					},
-                new HttpRouteDescriptor {
-                        Name = "UserApiRoute",
+                  new HttpRouteDescriptor {
+                        Name = "UserSelfApiRoute",
                         Priority = 20,
-                        RouteTemplate = "api/users/{action}",
-                        Defaults = new  { area = "Orchard.Users", controller = "AccountApi", action = "index"}
-                    }
+                        RouteTemplate = "api/user",
+                        Defaults = new  { area = "Orchard.Users", controller = "AccountApi", action = "self"}
+                    },
             };
         }
 

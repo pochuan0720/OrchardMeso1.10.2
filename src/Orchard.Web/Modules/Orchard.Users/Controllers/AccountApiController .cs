@@ -17,16 +17,18 @@ using System.Text.RegularExpressions;
 using Orchard.Core.Settings.Models;
 using Orchard.UI.Notify;
 using Orchard.Core.Common.Handlers;
+using System.Net;
+using System.Web;
 
 namespace Orchard.Users.Controllers {
     [Authorize]
-    public class AdminApiController : ApiController {
+    public class AccountApiController : ApiController {
         private readonly IMembershipService _membershipService;
         private readonly IUserService _userService;
         private readonly IUserEventHandler _userEventHandlers;
         private readonly ISiteService _siteService;
 
-        public AdminApiController(
+        public AccountApiController(
             IOrchardServices services,
             IMembershipService membershipService,
             IUserService userService,
@@ -48,17 +50,14 @@ namespace Orchard.Users.Controllers {
         public Localizer T { get; set; }
 
         [HttpPost]
-        public IHttpActionResult index(UsersIndexApiViewModel inModel) {
+        public IHttpActionResult list(UsersIndexApiViewModel inModel) {
             if (inModel == null)
             {
-                return BadRequest();
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
             }
 
             if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to list users")))
-                return Unauthorized();
-
-            string message = "";
-            string code = "200";
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to list users" });
 
             UserIndexOptions options;
             // default options
@@ -83,7 +82,7 @@ namespace Orchard.Users.Controllers {
             }
             Pager pager = null;
            if(inModel.Pager != null)
-                pager = new Pager(_siteService.GetSiteSettings(), inModel.Pager.Page,  inModel.Pager.PageSize, users.Count());
+                pager = new Pager(_siteService.GetSiteSettings(), inModel.Pager.GetStartIndex(),  inModel.Pager.PageSize, users.Count());
 
             if (!string.IsNullOrWhiteSpace(options.Search)) {
                 users = users.Where(u => u.UserName.Contains(options.Search) || u.Email.Contains(options.Search));
@@ -117,26 +116,21 @@ namespace Orchard.Users.Controllers {
                 Pager = pager
             };
 
-            ResultViewModel outModel = new ResultViewModel { Content = model, Code = code, Message = message };
-
-            return Ok(outModel);
+            return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
         [HttpPost]
         public IHttpActionResult index(int id)
         {
-            string message = "";
-            string code = "200";
 
             if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to manage users")))
-                return Unauthorized();
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
 
             var user = Services.ContentManager.Get<UserPart>(id);
             UserEditApiViewModel model = null;
             if (user == null)
             {
-                code = "404";
-                message = "User Not Found";
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
             }
             else
             {
@@ -148,37 +142,30 @@ namespace Orchard.Users.Controllers {
                 model.Data = doc.DocumentElement.FirstChild;
             }
 
-            ResultViewModel outModel = new ResultViewModel { Content = model, Code = code, Message = message };
-
-            return Ok(outModel);
+            return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
         [HttpPost]
         public IHttpActionResult update(int id, UserEditApiViewModel inModel)
         {
-            string message = "";
-            string code = "200";
             if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to manage users")))
-                return Unauthorized();
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
 
             var user = Services.ContentManager.Get<UserPart>(id, VersionOptions.DraftRequired);
 
             if (user == null)
             {
-                code = "404";
-                message = "User Not Found.";
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
             }
 
             if (!_userService.VerifyUserUnicity(id, inModel.UserName, inModel.Email))
             {
-                code = "500";
-                message = "User with that username and/or email already exists.";
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = "User with that username and/or email already exists." });
                 //AddModelError("NotUniqueUserName", T("User with that username and/or email already exists."));
             }
             else if (!Regex.IsMatch(inModel.Email ?? "", UserPart.EmailPattern, RegexOptions.IgnoreCase))
             {
-                code = "500";
-                message = "You must specify a valid email address.";
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = "You must specify a valid email address." });
                 //ModelState.AddModelError("Email", T("You must specify a valid email address."));
             }
 
@@ -195,17 +182,13 @@ namespace Orchard.Users.Controllers {
             Services.ContentManager.Publish(user.ContentItem);
 
             Services.Notifier.Information(T("User information updated"));
-            ResultViewModel outModel = new ResultViewModel { Code = code, Message = message};
 
-
-            return Ok(outModel);
+            return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
         [HttpPost]
         public IHttpActionResult delete(int id)
         {
-            string message = "";
-            string code = "200";
 
             if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to manage users")))
                 return Unauthorized();
@@ -214,8 +197,7 @@ namespace Orchard.Users.Controllers {
 
             if (user == null)
             {
-                code = "404";
-                message = "User Not Found.";
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
             }
             else
             {
@@ -235,10 +217,56 @@ namespace Orchard.Users.Controllers {
                 }
             }
 
-            ResultViewModel outModel = new ResultViewModel { Code = code, Message = message };
-
-            return Ok(outModel);
+            return Ok(new ResultViewModel { Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
+        [HttpPost]
+        public IHttpActionResult self()
+        {
+            UserPart user = (UserPart)_membershipService.GetUser(User.Identity.Name);
+            UserProfileViewModel model = new UserProfileViewModel();
+            model.CreatedUtc = (DateTime)user.CreatedUtc;
+            model.UserName = user.UserName;
+            model.Email = user.Email;
+            XmlDocument doc = new XmlDocument();
+            if (user.ContentItem.VersionRecord.Data != null)
+            {
+                doc.LoadXml(user.ContentItem.VersionRecord.Data);
+                model.Data = doc.DocumentElement.FirstChild;
+            }
+
+            return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        public IHttpActionResult register(UserCreateViewModel inModel)
+        {
+            if (inModel == null)
+            {
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+            }
+
+            if (!_userService.VerifyUserUnicity(inModel.UserName, inModel.Email))
+            {
+                //AddModelError("NotUniqueUserName", T("User with that email already exists."));
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Conflict.ToString("d"), Message = "User with that email already exists." });
+            }
+
+            IUser user = _membershipService.CreateUser(new CreateUserParams(inModel.UserName, inModel.Password, inModel.Email, null, null, true));
+            ResultViewModel outModel = null;
+            if (user != null)
+            {
+                var model = Services.ContentManager.UpdateEditor(user, new UpdateModelHandler(inModel.Data));
+                return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+            }
+            else
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.InternalServerError.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.InternalServerError) });
+        }
     }
 }

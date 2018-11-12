@@ -14,11 +14,17 @@ namespace Orchard.Api.Routing.Api
         {
             return new[]{
                  new HttpRouteDescriptor {
-											Name = "RoleApiRoute",
+											Name = "RoleIndexApiRoute",
 											Priority = 20,
-											RouteTemplate = "api/roles/{action}",
+											RouteTemplate = "api/roles",
 											Defaults = new	{ area = "Orchard.Roles", controller = "AdminApi", action = "index"}		
-										}
+										},
+                 new HttpRouteDescriptor {
+                                            Name = "RoleApiRoute",
+                                            Priority = 20,
+                                            RouteTemplate = "api/roles/{id}",
+                                            Defaults = new  { area = "Orchard.Roles", controller = "AdminApi", id = RouteParameter.Optional}
+                                        }
             };
         }
 

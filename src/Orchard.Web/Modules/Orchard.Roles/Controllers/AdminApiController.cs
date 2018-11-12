@@ -1,5 +1,7 @@
 ﻿using System.Linq;
+using System.Net;
 using System.Web.Http;
+using Orchard.Core.Common.ViewModels;
 using Orchard.Localization;
 using Orchard.Logging;
 using Orchard.Roles.Services;
@@ -31,39 +33,36 @@ namespace Orchard.Roles.Controllers {
         public Localizer T { get; set; }
         public ILogger Logger { get; set; }
 
-        [Authorize]
-        [HttpGet]
+        [HttpPost]
         public IHttpActionResult Index()
         {
             if (!Services.Authorizer.Authorize(Permissions.ManageRoles, T("Not authorized to manage roles")))
-                return Unauthorized();
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
 
-            var model = new RolesIndexViewModel { Rows = _roleService.GetRoles().OrderBy(r => r.Name).ToList() };
-            return Ok(model);
+            var model = _roleService.GetRoles().OrderBy(r => r.Name).ToList();
+            return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-        [Authorize]
-        [HttpGet]
+        [HttpPost]
         public IHttpActionResult Index(int id)
         {
             if (!Services.Authorizer.Authorize(Permissions.ManageRoles, T("Not authorized to manage roles")))
-                return Unauthorized();
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage roles" });
 
             var model = _roleService.GetRole(id);
 
-            return Ok(model);
+            return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-        [Authorize]
-        [HttpGet]
+        [HttpPost]
         public IHttpActionResult Index(string name)
         {
             if (!Services.Authorizer.Authorize(Permissions.ManageRoles, T("Not authorized to manage roles")))
-                return Unauthorized();
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage roles" });
 
             var model = _roleService.GetRoleByName(name);
 
-            return Ok(model);
+            return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
         public void AddModelError(string key, LocalizedString errorMessage)
