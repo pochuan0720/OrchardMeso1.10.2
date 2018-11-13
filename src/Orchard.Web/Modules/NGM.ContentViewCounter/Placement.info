@@ -1,0 +1,8 @@
+﻿<Placement>
+  <Match DisplayType="Summary">
+    <Place Parts_UserView_Summary="Meta:10"/>
+  </Match>
+  <Match DisplayType="SummaryAdmin">
+    <Place Parts_UserView_SummaryAdmin="Content:5"/>
+  </Match>
+</Placement>
