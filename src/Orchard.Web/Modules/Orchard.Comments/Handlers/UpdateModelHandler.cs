@@ -23,16 +23,11 @@ namespace Orchard.Comments.Handlers
             {
                 if (typeof(CommentPart) == model.GetType())
                 {
-                    string path = "/Data";
-                    CommentPart viewModel = model as CommentPart;
-                    if (fields.SelectSingleNode(path + "/CommentText") != null)
-                        viewModel.CommentText = fields.SelectSingleNode(path + "/CommentText").InnerText;
+                    dynamic _model = model;
 
-                    if (fields.SelectSingleNode(path + "/CommentedOn") != null)
-                        viewModel.CommentedOn = int.Parse(fields.SelectSingleNode(path + "/CommentedOn").InnerText);
-
-                    if (fields.SelectSingleNode(path + "/RepliedOn") != null)
-                        viewModel.RepliedOn = int.Parse(fields.SelectSingleNode(path + "/RepliedOn").InnerText);
+                    _model.CommentText = fields.GetValue("CommentText").ToString();
+                    _model.CommentedOn = (int)fields.GetValue("CommentedOn");
+                    _model.RepliedOn = (int)fields.GetValue("RepliedOn");
                     return true;
                 }
                 else

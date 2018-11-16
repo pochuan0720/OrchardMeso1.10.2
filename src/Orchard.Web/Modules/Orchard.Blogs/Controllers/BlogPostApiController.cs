@@ -127,7 +127,7 @@ namespace Orchard.Blogs.Controllers {
 
             Services.Notifier.Information(T("Your {0} has been saved.", blogPost.TypeDefinition.DisplayName));
 
-            return Ok(new ResultViewModel { Content = blog, Success = true,  Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+            return Ok(new ResultViewModel { Content = blogPost, Success = true,  Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
         [HttpPost]

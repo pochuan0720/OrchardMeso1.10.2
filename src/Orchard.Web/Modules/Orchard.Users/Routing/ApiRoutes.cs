@@ -23,6 +23,12 @@ namespace Orchard.Users.Routing
                         Defaults = new  { area = "Orchard.Users", controller = "AccountApi", action = "register"}
                     },
                   new HttpRouteDescriptor {
+                        Name = "UserCreateApiRoute",
+                        Priority = 20,
+                        RouteTemplate = "api/users/create",
+                        Defaults = new  { area = "Orchard.Users", controller = "AccountApi", action = "create"}
+                    },
+                  new HttpRouteDescriptor {
                         Name = "UserIndexApiRoute",
                         Priority = 20,
                         RouteTemplate = "api/users/{id}",

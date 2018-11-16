@@ -23,12 +23,9 @@ namespace Orchard.Blogs.Handlers
             {
                 if (typeof(BlogPart) == model.GetType())
                 {
-                    string path = "/Data";
-                    BlogPart viewModel = model as BlogPart;
-                    if (fields.SelectSingleNode(path + "/Description") != null)
-                        viewModel.Description = fields.SelectSingleNode(path + "/Description").InnerText;
-                    if(fields.SelectSingleNode(path + "/PostsPerPage") != null)
-                        viewModel.PostsPerPage = int.Parse(fields.SelectSingleNode(path + "/PostsPerPage").InnerText);
+                    dynamic _model = model;
+                    _model.Description = fields.GetValue("Description").ToString();
+                    _model.PostsPerPage = (int)fields.GetValue("PostsPerPage");
                     return true;
                 }
                 else

@@ -1,6 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 using Orchard.ContentManagement;
+using Orchard.ContentManagement.Aspects;
 using Orchard.ContentManagement.FieldStorage.InfosetStorage;
 using Orchard.ContentManagement.Handlers;
 using Orchard.ContentManagement.Utilities;
@@ -89,6 +90,13 @@ namespace Orchard.MediaLibrary.Models {
         public string LogicalType {
             get { return Convert.ToString(this.As<InfosetPart>().Get<MediaPart>("LogicalType")); }
             set { this.As<InfosetPart>().Set<MediaPart>("LogicalType", value); }
+        }
+
+        [JsonProperty]
+        public DateTime? ModifiedUtc
+        {
+            get { return this.As<ICommonPart>().ModifiedUtc; }
+            set { this.As<ICommonPart>().ModifiedUtc = value; }
         }
     }
 }

@@ -19,6 +19,8 @@ using Orchard.UI.Notify;
 using Orchard.Core.Common.Handlers;
 using System.Net;
 using System.Web;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 
 namespace Orchard.Users.Controllers {
     [Authorize]
@@ -127,22 +129,63 @@ namespace Orchard.Users.Controllers {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
 
             var user = Services.ContentManager.Get<UserPart>(id);
-            UserEditApiViewModel model = null;
+            UserEditApiViewModel outModel = null;
             if (user == null)
             {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
             }
             else
             {
-                model = new UserEditApiViewModel();
-                model.UserName = user.UserName;
-                model.Email = user.Email;
-                XmlDocument doc = new XmlDocument();
-                doc.LoadXml(user.ContentItem.VersionRecord.Data);
-                model.Data = doc.DocumentElement.FirstChild;
+                outModel = new UserEditApiViewModel();
+                outModel.UserName = user.UserName;
+                outModel.Email = user.Email;
+                var model = Services.ContentManager.BuildEditor(user);
+
+                JObject obj = new JObject();
+
+                foreach (var item in model.Content.Items)
+                {
+                    if (item.TemplateName.Equals("Fields/Input.Edit") || item.TemplateName.Equals("Fields/Enumeration.Edit"))
+                        obj.Add(new JProperty(item.Prefix, item.Model.Value));
+                    else if (item.TemplateName.Equals("Fields/Numeric.Edit"))
+                        if(string.IsNullOrEmpty(item.Model.Value))
+                            obj.Add(new JProperty(item.Prefix, ""));
+                        else
+                            obj.Add(new JProperty(item.Prefix, int.Parse(item.Model.Value)));
+                    else if (item.TemplateName.Equals("Fields/DateTime.Edit"))
+                        obj.Add(new JProperty(item.Prefix, item.ContentField.DateTime));
+                    else if (item.TemplateName.Equals("Fields/MediaLibraryPicker.Edit"))
+                        obj.Add(new JProperty(item.Prefix, item.Model.Field.Ids));
+                    else if (item.TemplateName.Equals("Fields/TaxonomyField"))
+                    {
+                        var viewModel = item.Model;
+                        var checkedTerms = new List<int>();
+                        foreach (var term in viewModel.Terms)
+                        {
+                            if (term.IsChecked)
+                                checkedTerms.Add(term.Id);
+                        }
+                        obj.Add(new JProperty(item.Prefix, checkedTerms.ToArray()));
+                    }
+
+                    else if (item.TemplateName.Equals("Parts/Roles.UserRoles"))
+                        obj.Add(new JProperty(item.Prefix, item.Model.UserRoles.Roles));
+                    else
+                        obj.Add(new JProperty(item.Prefix, item.TemplateName));
+                }
+
+                outModel.Data = obj;
+                //var occurences = model.Content..SelectMany(part => part.Fields.OfType<TField>().Select(field => new { part, field }));
+                //model.Select
+                /*XmlDocument doc = new XmlDocument();
+                if (user.ContentItem.VersionRecord.Data != null)
+                {
+                    doc.LoadXml(user.ContentItem.VersionRecord.Data);
+                    outModel.Data = doc.DocumentElement.FirstChild;
+                }*/
             }
 
-            return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+            return Ok(new ResultViewModel { Content = outModel, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
         [HttpPost]
@@ -191,7 +234,7 @@ namespace Orchard.Users.Controllers {
         {
 
             if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to manage users")))
-                return Unauthorized();
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
 
             var user = Services.ContentManager.Get<IUser>(id);
 
@@ -262,11 +305,27 @@ namespace Orchard.Users.Controllers {
             ResultViewModel outModel = null;
             if (user != null)
             {
+                /*try
+                {
+                    var editor = Shape.EditorTemplate(TemplateName: "Parts/Roles.UserRoles", Model: Activator.CreateInstance(Type.GetType("Orchard.Roles.ViewModels.UserRolesViewModel, Orchard.Roles", true)), Prefix: null);
+                    Services.ContentManager.BuildEditor(user);
+                }catch (Exception e) { };*/
+                //Services.ContentManager.BuildEditor(user);
+                
                 var model = Services.ContentManager.UpdateEditor(user, new UpdateModelHandler(inModel.Data));
                 return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
             }
             else
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.InternalServerError.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.InternalServerError) });
+        }
+
+        [HttpPost]
+        public IHttpActionResult create(UserCreateViewModel inModel)
+        {
+            if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to manage users")))
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
+
+            return register(inModel);
         }
     }
 }
