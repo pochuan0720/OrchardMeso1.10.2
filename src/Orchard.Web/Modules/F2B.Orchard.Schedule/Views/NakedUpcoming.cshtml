@@ -1,0 +1,55 @@
+﻿@model dynamic
+@{
+    Script.Require("jQuery").AtFoot();
+    Script.Require("MomentJS").AtFoot();
+    Script.Require("ko").AtFoot();
+    Script.Include("UpcomingEvents.js").AtFoot();
+    Style.Include("UpcomingEvents.css");
+
+    var queryId = Convert.ToInt32(Model.Context.State.QueryId);
+}
+
+<div id="upcomingEvents" data-eventurl="@Url.Content("~/_Calendar/" + queryId)" >
+    <ul id="eventsContainer" style="height: 250px; overflow-y: scroll;">
+        <li id="eventsStart">
+            <span class="from-date" data-bind="text: minDateDisplay"></span>
+            <span class="trigger"><a href='#' data-bind="click: updateStart">Load earlier</a></span>
+        </li>
+        <!-- ko template: {name: 'day-template', foreach: days, as: 'day'} -->
+        <!-- /ko -->
+        <li id="eventsEnd">
+            <span class="to-date" data-bind="text: maxDateDisplay"></span>
+            <span class="trigger"><a href='#' data-bind="click: updateEnd">Load later</a></span>
+        </li>
+    </ul>
+</div>
+
+@using (Script.Head())
+{   
+    <script type="text/html" id="day-template">
+        <li class="day"><span class="date" data-bind="text: formattedDate" />
+            <ul class="events" data-bind="template: {name: 'event-template', foreach: events, as: 'event'}"></ul>
+        </li>
+    </script>
+    
+    <script type="text/html" id="event-template">
+        <li data-bind="attr: {class: classes}">
+            <span class="event-info">
+                <!-- ko if: allDay -->
+                <a class="event-allday" data-bind="text: title, attr: { href: url }" />
+                <!-- /ko -->
+                <!-- ko if: !allDay && day.date() - startDate == 0 -->
+                <span class="start-time" data-bind="text: startTime" />
+                <a class="event-title" data-bind="text: title, attr: { href: url }" />
+                <!-- /ko -->
+                <!-- ko if: !allDay && day.date() - endDate == 0 && startDate - endDate != 0 -->
+                <span class="end-time" data-bind="text: endTime" />
+                <a class="event-title" data-bind="text: title, attr: { href: url }" />
+                <!-- /ko -->
+                <!-- ko if: !allDay && day.date() - startDate != 0 && day.date() - endDate != 0 -->
+                <a class="event-continuation" data-bind="text: title, attr: { href: url }" />
+                <!-- /ko -->
+            </span>
+        </li>
+    </script>
+}

@@ -52,10 +52,10 @@ namespace Orchard.Users.Controllers {
         public Localizer T { get; set; }
 
         [HttpPost]
-        public IHttpActionResult list(UsersIndexApiViewModel inModel) {
-            if (inModel == null)
+        public IHttpActionResult query(UsersIndexApiViewModel inModel) {
+            if (inModel != null && inModel.Id != null)
             {
-                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+                return query((int)inModel.Id);
             }
 
             if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to list users")))
@@ -82,9 +82,6 @@ namespace Orchard.Users.Controllers {
                     users = users.Where(u => u.EmailStatus == UserStatus.Pending);
                     break;
             }
-            Pager pager = null;
-           if(inModel.Pager != null)
-                pager = new Pager(_siteService.GetSiteSettings(), inModel.Pager.GetStartIndex(),  inModel.Pager.PageSize, users.Count());
 
             if (!string.IsNullOrWhiteSpace(options.Search)) {
                 users = users.Where(u => u.UserName.Contains(options.Search) || u.Email.Contains(options.Search));
@@ -105,26 +102,28 @@ namespace Orchard.Users.Controllers {
                     break;
             }
 
-            var results = pager != null ? users
-                .Slice(pager.GetStartIndex(), pager.PageSize)
-                .ToList() : users.List();
-
-            pager.PageSize = results.ToList().Count;
+            //Paging
+            Pager pager = null;
+            var results = Enumerable.Empty<UserPart>(); 
+            if (inModel.Pager != null)
+            {
+                pager = new Pager(_siteService.GetSiteSettings(), inModel.Pager.GetStartIndex(), inModel.Pager.PageSize, users.Count());
+                results = users.Slice(pager.GetStartIndex(), pager.PageSize).ToList();
+                pager.PageSize = results.ToList().Count;
+            }
+            else
+                results = users.List<UserPart>();
 
             var model = new UsersIndexApiViewModel {
-                Users = results
-                    .Select(x => x.Record)
-                    .ToList(),
+                Data = results.ToList(),
                 Pager = pager
             };
 
             return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-        [HttpPost]
-        public IHttpActionResult index(int id)
+        private IHttpActionResult query(int id)
         {
-
             if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to manage users")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
 
@@ -141,7 +140,7 @@ namespace Orchard.Users.Controllers {
                 outModel.Email = user.Email;
                 var model = Services.ContentManager.BuildEditor(user);
 
-                JObject obj = new JObject();
+                /*JObject obj = new JObject();
 
                 foreach (var item in model.Content.Items)
                 {
@@ -172,9 +171,9 @@ namespace Orchard.Users.Controllers {
                         obj.Add(new JProperty(item.Prefix, item.Model.UserRoles.Roles));
                     else
                         obj.Add(new JProperty(item.Prefix, item.TemplateName));
-                }
+                }*/
 
-                outModel.Data = obj;
+                outModel.Data = UpdateModelHandler.GetData(model);
                 //var occurences = model.Content..SelectMany(part => part.Fields.OfType<TField>().Select(field => new { part, field }));
                 //model.Select
                 /*XmlDocument doc = new XmlDocument();
@@ -189,19 +188,19 @@ namespace Orchard.Users.Controllers {
         }
 
         [HttpPost]
-        public IHttpActionResult update(int id, UserEditApiViewModel inModel)
+        public IHttpActionResult update(UserEditApiViewModel inModel)
         {
             if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to manage users")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
 
-            var user = Services.ContentManager.Get<UserPart>(id, VersionOptions.DraftRequired);
+            var user = Services.ContentManager.Get<UserPart>(inModel.Id, VersionOptions.DraftRequired);
 
             if (user == null)
             {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
             }
 
-            if (!_userService.VerifyUserUnicity(id, inModel.UserName, inModel.Email))
+            /*if (!_userService.VerifyUserUnicity(id, inModel.UserName, inModel.Email))
             {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = "User with that username and/or email already exists." });
                 //AddModelError("NotUniqueUserName", T("User with that username and/or email already exists."));
@@ -210,17 +209,37 @@ namespace Orchard.Users.Controllers {
             {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = "You must specify a valid email address." });
                 //ModelState.AddModelError("Email", T("You must specify a valid email address."));
-            }
+            }*/
 
             string previousName = user.UserName;
 
             var model = Services.ContentManager.UpdateEditor(user, new UpdateModelHandler(inModel.Data));
 
-            // also update the Super user if this is the renamed account
-            if (string.Equals(Services.WorkContext.CurrentSite.SuperUser, previousName, StringComparison.Ordinal))
+            var editModel = new UserEditViewModel { User = user };
+            if(!string.IsNullOrEmpty(inModel.UserName))
+                editModel.UserName = inModel.UserName;
+            if(!string.IsNullOrEmpty(inModel.Email))
+                editModel.Email = inModel.Email;
+            if (!_userService.VerifyUserUnicity(inModel.Id, editModel.UserName, editModel.Email))
             {
-                _siteService.GetSiteSettings().As<SiteSettingsPart>().SuperUser = inModel.UserName;
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = "User with that username and/or email already exists." });
             }
+            else if (!Regex.IsMatch(editModel.Email ?? "", UserPart.EmailPattern, RegexOptions.IgnoreCase))
+            {
+                // http://haacked.com/archive/2007/08/21/i-knew-how-to-validate-an-email-address-until-i.aspx    
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = "You must specify a valid email address." });
+            }
+            else
+            {
+                // also update the Super user if this is the renamed account
+                if (string.Equals(Services.WorkContext.CurrentSite.SuperUser, previousName, StringComparison.Ordinal))
+                {
+                    _siteService.GetSiteSettings().As<SiteSettingsPart>().SuperUser = editModel.UserName;
+                }
+
+                user.NormalizedUserName = editModel.UserName.ToLowerInvariant();
+            }
+
 
             Services.ContentManager.Publish(user.ContentItem);
 
@@ -230,13 +249,13 @@ namespace Orchard.Users.Controllers {
         }
 
         [HttpPost]
-        public IHttpActionResult delete(int id)
+        public IHttpActionResult delete(UserEditApiViewModel inModel)
         {
 
             if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to manage users")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
 
-            var user = Services.ContentManager.Get<IUser>(id);
+            var user = Services.ContentManager.Get<IUser>(inModel.Id);
 
             if (user == null)
             {

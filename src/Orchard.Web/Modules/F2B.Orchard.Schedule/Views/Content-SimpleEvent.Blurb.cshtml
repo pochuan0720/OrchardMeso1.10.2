@@ -1,0 +1,7 @@
+﻿@using Orchard.ContentManagement
+@{
+    var item = Model.ContentItem;
+    var title = item.TitlePart.Title;
+    var link = Url.ItemDisplayUrl((IContent)item);
+}
+<span><a href="@link">@title</a></span>

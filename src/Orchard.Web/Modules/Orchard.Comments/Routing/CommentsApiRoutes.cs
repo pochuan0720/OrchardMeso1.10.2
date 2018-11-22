@@ -14,12 +14,6 @@ namespace Orchard.Blogs.Routing
         {
             return new[]{
                    new HttpRouteDescriptor {
-                        Name = "CommentApiRoute",
-                        Priority = 20,
-                        RouteTemplate = "api/comments/{contentId}/{action}",
-                        Defaults = new  { area = "Orchard.Comments", controller = "CommentApi", contentId = RouteParameter.Optional}
-                    },
-                   new HttpRouteDescriptor {
                         Name = "CommentCreateApiRoute",
                         Priority = 20,
                         RouteTemplate = "api/comments/{action}",

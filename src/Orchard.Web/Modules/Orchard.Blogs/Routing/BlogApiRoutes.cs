@@ -13,28 +13,16 @@ namespace Orchard.Blogs.Routing
         public IEnumerable<Mvc.Routes.RouteDescriptor> GetRoutes()
         {
             return new[]{
-                   new HttpRouteDescriptor {
-                        Name = "BlogCreateApiRoute",
-                        Priority = 20,
-                        RouteTemplate = "api/blogs/create",
-                        Defaults = new  { area = "Orchard.Blogs", controller = "BlogApi", action = "create"}
-                    },
-                  new HttpRouteDescriptor {
-                        Name = "BlogIndexApiRoute",
-                        Priority = 20,
-                        RouteTemplate = "api/blogs/{blogId}",
-                        Defaults = new  { area = "Orchard.Blogs", controller = "BlogApi", action = "index", blogId = RouteParameter.Optional}
-                    },
                   new HttpRouteDescriptor {
                         Name = "BlogApiRoute",
                         Priority = 20,
-                        RouteTemplate = "api/blogs/{blogId}/{action}",
-                        Defaults = new  { area = "Orchard.Blogs", controller = "BlogApi", blogId = RouteParameter.Optional}
+                        RouteTemplate = "api/blogs/{action}",
+                        Defaults = new  { area = "Orchard.Blogs", controller = "BlogApi"}
                     },
                    new HttpRouteDescriptor {
                         Name = "BlogPostsApiRoute",
                         Priority = 20,
-                        RouteTemplate = "api/blogs/{blogId}/posts",
+                        RouteTemplate = "api/blogposts/query",
                         Defaults = new  { area = "Orchard.Blogs", controller = "BlogApi", action = "posts"}
                     }
             };

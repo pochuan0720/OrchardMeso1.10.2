@@ -1,0 +1,89 @@
+﻿@model dynamic
+@{
+    Script.Require("FullCalendar").AtFoot();
+    Script.Require("qTip").AtFoot();
+    Style.Require("FullCalendar");
+    Style.Require("FullCalendar.Print");
+    Style.Require("qTip");
+}
+<div id="calendar"></div>
+<div id="calendar-tags"></div>
+@using (Script.Foot())
+{
+    <script type="text/javascript">
+        (function ($) {
+@if (Model.tagColorsEnabled && Model.tagColors != null) {
+    <text>
+            var tagSet = [
+                @foreach (var tc in Model.tagColors)
+                {
+                    @Display(tc)
+                }
+            ];
+
+            var tagIndex = [];
+            for (var tag in tagSet) {
+                tagIndex[tagSet[tag].slug] = tag;
+            }
+
+    </text>
+}
+            $('#calendar').fullCalendar({
+                header: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'month,agendaWeek,agendaDay'
+                },
+                eventRender: function (event, element) {
+                    var colors = { bg : event.defaultBackgroundColor, br: event.defaultBorderColor, fg: event.defaultTextColor };
+@if (Model.tagColorsEnabled)
+{
+    <text>
+                    var min = 100;
+                    for (var klassNdx in event.className) {
+                        var klass = event.className[klassNdx];
+                        if (klass.substring(0, 4) === "tag-") {
+                            var entry = tagIndex[klass.substring(4)];
+                            if (entry !== undefined) {
+                                if (entry < min) {
+                                    colors = tagSet[entry];
+                                    min = entry;
+                                }
+                            }
+                        }
+                    }
+    </text>
+}
+                    $(element)
+                        .css("background-color", colors.bg)
+                        .css("color", colors.fg)
+                        .css("border-color", colors.br);
+                },
+                //eventClick: function(data, event, view) { return false; },
+                //eventClick: function(data, event, view) {
+                //    var content =
+                //        //'<h3>' + data.title + '</h3>' +
+                //        '<p><b>Id:</b> ' + data.id + '</p>' +
+                //        '<p><b>Start:</b> ' + data.start + '</p>' +
+                //        (data.end && '<p><b>End:</b> ' + data.end + '</p>' || '') +
+                //        '<p><b><a href="' + data.url + '">Details</a></b></p>';
+
+                //    tooltip.set({
+                //        'content.title': data.title,
+                //        'content.text': content
+                //    })
+                //    .reposition(event).show(event);
+
+                //    return false;
+                //},
+                editable: false,
+                events: { 
+                    url: '@Url.Content("~/_Calendar/" + Model.queryId)',
+                },
+                defaultView: '@Model.defaultView',
+                weekends: @Model.showWeekends
+                //viewRender: function (v, e) { alert("Rendering view"); }
+                });
+        })(jQuery);
+    </script>
+}

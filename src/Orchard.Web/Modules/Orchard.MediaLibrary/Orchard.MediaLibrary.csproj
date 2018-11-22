@@ -224,6 +224,7 @@
     <Compile Include="ViewModels\MediaManagerChildFoldersViewModel.cs" />
     <Compile Include="ViewModels\ImportMediaViewModel.cs" />
     <Compile Include="ViewModels\MediaLibraryPickerFieldViewModel.cs" />
+    <Compile Include="ViewModels\MediaManagerEditApiViewModel.cs" />
     <Compile Include="ViewModels\MediaManagerMediaItemsApiViewModel.cs" />
     <Compile Include="ViewModels\MediaManagerMediaItemsViewModel.cs" />
     <Compile Include="ViewModels\MediaManagerFolderCreateViewModel.cs" />

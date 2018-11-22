@@ -145,6 +145,7 @@
     <Compile Include="Services\RolesBasedAuthorizationService.cs" />
     <Compile Include="Services\RoleService.cs" />
     <Compile Include="ViewModels\RoleCreateViewModel.cs" />
+    <Compile Include="ViewModels\RoleEditApiViewModel.cs" />
     <Compile Include="ViewModels\RoleEditViewModel.cs" />
     <Compile Include="ViewModels\RolesIndexViewModel.cs" />
     <Compile Include="ViewModels\UserRolesViewModel.cs" />

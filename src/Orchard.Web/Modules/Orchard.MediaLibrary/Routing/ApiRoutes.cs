@@ -17,17 +17,11 @@ namespace Orchard.MediaLibrary.Routing
                         Defaults = new  { area = "Orchard.MediaLibrary", controller = "ClientStorageApi", action = "upload", folderPath = RouteParameter.Optional}
                     },
                    new HttpRouteDescriptor {
-                        Name = "MediaLibraryDeleteApiRoute",
+                        Name = "MediaLibraryActionApiRoute",
                         Priority = 20,
-                        RouteTemplate = "api/medias/delete/{*mediaIds}",
-                        Defaults = new  { area = "Orchard.MediaLibrary", controller = "ClientStorageApi", action = "delete", mediaIds = RouteParameter.Optional}
-                    },
-                   new HttpRouteDescriptor {
-                        Name = "MediaLibraryIndexApiRoute",
-                        Priority = 20,
-                        RouteTemplate = "api/medias/{*folderPath}",
-                        Defaults = new  { area = "Orchard.MediaLibrary", action = "index", controller = "ClientStorageApi"}
-                    },
+                        RouteTemplate = "api/medias/{action}",
+                        Defaults = new  { area = "Orchard.MediaLibrary", controller = "ClientStorageApi"}
+                    }
             };
         }
 

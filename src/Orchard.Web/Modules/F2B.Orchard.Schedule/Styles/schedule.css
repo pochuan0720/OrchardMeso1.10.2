@@ -1,0 +1,6 @@
+﻿.schedule input.invalid, .schedule input.beforeStart {
+    background-color: #ffaaaa;
+}
+
+#repeat-dialog label { font-size: 0.9em; line-height: 0.5em; }
+#repeat-dialog .field-group { margin-bottom: 10px;}

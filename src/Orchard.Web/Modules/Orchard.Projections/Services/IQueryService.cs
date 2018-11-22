@@ -4,6 +4,7 @@ using Orchard.Projections.Models;
 
 namespace Orchard.Projections.Services {
     public interface IQueryService : IDependency {
+        QueryPart GetQuery(string name);
         QueryPart GetQuery(int id);
 
         QueryPart CreateQuery(string name);

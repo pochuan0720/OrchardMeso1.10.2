@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web.Mvc;
 using System.Web.Routing;
-using Orchard.Core.Title.Models;
 using Orchard.Forms.Services;
 using Orchard.Mvc;
 using Orchard.Projections.Descriptors.Filter;
@@ -18,6 +17,7 @@ using Orchard.UI.Notify;
 using System;
 using Orchard.Settings;
 using Orchard.UI.Navigation;
+using Orchard.Core.Title.Models;
 
 namespace Orchard.Projections.Controllers {
     [ValidateInput(false)]

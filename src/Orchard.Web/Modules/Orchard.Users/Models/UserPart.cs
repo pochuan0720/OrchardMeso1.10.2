@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Web.Security;
+using Newtonsoft.Json;
 using Orchard.ContentManagement;
 using Orchard.Security;
 
 namespace Orchard.Users.Models {
+    [JsonObject(MemberSerialization.OptIn)]
     public sealed class UserPart : ContentPart<UserPartRecord>, IUser {
         public const string EmailPattern =
             @"^(?![\.@])(""([^""\r\\]|\\[""\r\\])*""|([-\p{L}0-9!#$%&'*+/=?^_`{|}~]|(?<!\.)\.)*)(?<!\.)"
@@ -11,7 +13,7 @@ namespace Orchard.Users.Models {
 
         public const int MaxUserNameLength = 255;
         public const int MaxEmailLength = 255;
-
+        [JsonProperty]
         public string UserName {
             get { return Retrieve(x => x.UserName); }
             set { Store(x => x.UserName, value); }
@@ -41,7 +43,7 @@ namespace Orchard.Users.Models {
             get { return Retrieve(x => x.PasswordSalt); }
             set { Store(x => x.PasswordSalt, value); }
         }
-
+        [JsonProperty]
         public string Email {
             get { return Retrieve(x => x.Email); }
             set { Store(x => x.Email, value); }
@@ -61,12 +63,12 @@ namespace Orchard.Users.Models {
             get { return Retrieve(x => x.EmailStatus); }
             set { Store(x => x.EmailStatus, value); }
         }
-
+        [JsonProperty]
         public DateTime? CreatedUtc {
             get { return Retrieve(x => x.CreatedUtc); }
             set { Store(x => x.CreatedUtc, value); }
         }
-
+        [JsonProperty]
         public DateTime? LastLoginUtc {
             get { return Retrieve(x => x.LastLoginUtc); }
             set { Store(x => x.LastLoginUtc, value); }

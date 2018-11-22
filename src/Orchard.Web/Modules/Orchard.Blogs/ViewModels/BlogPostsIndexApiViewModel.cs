@@ -10,7 +10,9 @@ namespace Orchard.Blogs.ViewModels
 {
     public class BlogPostsIndexApiViewModel
     {
-        public IList<BlogPostPart> BlogPosts { get; set; }
+        public int? Id { get; set; }
+        public int? BlogId { get; set; }
+        public IList<BlogPostPart> Data { get; set; }
         public Pager Pager { get; set; }
     }
 }

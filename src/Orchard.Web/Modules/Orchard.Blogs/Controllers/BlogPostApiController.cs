@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Web;
 using System.Web.Http;
@@ -13,6 +15,8 @@ using Orchard.Core.Common.ViewModels;
 using Orchard.Core.Contents.Settings;
 using Orchard.Localization;
 using Orchard.Mvc;
+using Orchard.Settings;
+using Orchard.UI.Navigation;
 using Orchard.UI.Notify;
 
 namespace Orchard.Blogs.Controllers {
@@ -25,11 +29,13 @@ namespace Orchard.Blogs.Controllers {
     public class BlogPostApiController : ApiController {
         private readonly IBlogService _blogService;
         private readonly IBlogPostService _blogPostService;
+        private readonly ISiteService _siteService;
 
-        public BlogPostApiController(IOrchardServices services, IBlogService blogService, IBlogPostService blogPostService) {
+        public BlogPostApiController(IOrchardServices services, IBlogService blogService, IBlogPostService blogPostService, ISiteService siteService) {
             Services = services;
             _blogService = blogService;
             _blogPostService = blogPostService;
+            _siteService = siteService;
             T = NullLocalizer.Instance;
         }
 
@@ -37,9 +43,9 @@ namespace Orchard.Blogs.Controllers {
         public Localizer T { get; set; }
 
         [HttpPost]
-        public IHttpActionResult create(int blogId, BlogPostEditApiViewModel inModel)
+        public IHttpActionResult create(BlogPostEditApiViewModel inModel)
         {
-            var blog = _blogService.Get(blogId, VersionOptions.Latest).As<BlogPart>();
+            var blog = _blogService.Get(inModel.BlogId, VersionOptions.Latest).As<BlogPart>();
 
             if (blog == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound)});
@@ -73,12 +79,12 @@ namespace Orchard.Blogs.Controllers {
         }
 
         [HttpPost]
-        public IHttpActionResult update(int blogId, int postId, BlogPostEditApiViewModel inModel)
+        public IHttpActionResult update(BlogPostEditApiViewModel inModel)
         {
             if (inModel.Publish != null && (bool)inModel.Publish)
-                return EditAndPublishPOST(blogId, postId, inModel);
+                return EditAndPublishPOST(inModel.BlogId, inModel.Id, inModel);
             else
-                return EditPOST(blogId, postId, inModel);
+                return EditPOST(inModel.BlogId, inModel.Id, inModel);
         }
 
         private IHttpActionResult EditPOST(int blogId, int postId, BlogPostEditApiViewModel inModel)
@@ -131,15 +137,15 @@ namespace Orchard.Blogs.Controllers {
         }
 
         [HttpPost]
-        public IHttpActionResult delete(int blogId, int postId)
+        public IHttpActionResult delete(BlogPostEditApiViewModel inModel)
         {
             //refactoring: test PublishBlogPost/PublishBlogPost in addition if published
 
-            var blog = _blogService.Get(blogId, VersionOptions.Latest);
+            var blog = _blogService.Get(inModel.BlogId, VersionOptions.Latest);
             if (blog == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
-            var post = _blogPostService.Get(postId, VersionOptions.Latest);
+            var post = _blogPostService.Get(inModel.Id, VersionOptions.Latest);
             if (post == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
@@ -152,18 +158,52 @@ namespace Orchard.Blogs.Controllers {
             return Ok(new ResultViewModel { Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-        [HttpPost]
-        public IHttpActionResult index(int blogId, int postId)
+        private IHttpActionResult query(int blogId, int id)
         {
             var blog = _blogService.Get(blogId, VersionOptions.Latest);
             if (blog == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
-            var blogpost = _blogPostService.Get(postId);
+            var blogpost = _blogPostService.Get(id);
             if (blogpost == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             return Ok(new ResultViewModel { Content = blogpost, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+        }
+
+        [HttpPost]
+        public IHttpActionResult query(BlogPostsIndexApiViewModel inModel)
+        {
+            if (inModel != null && inModel.BlogId != null  && inModel.Id != null)
+                return query((int)inModel.BlogId, (int)inModel.Id);
+
+            Pager pager = null;
+
+            if(inModel.BlogId == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+
+            BlogPart blogPart = _blogService.Get((int)inModel.BlogId, VersionOptions.Latest).As<BlogPart>();
+
+            if (blogPart == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+            var totalItemCount = _blogPostService.PostCount(blogPart, VersionOptions.Latest);
+            if (inModel != null && inModel.Pager != null)
+                pager = new Pager(_siteService.GetSiteSettings(), inModel.Pager.Page, inModel.Pager.PageSize, totalItemCount);
+
+            IList<BlogPostPart> blogPosts;
+
+            if (pager != null)
+            {
+                blogPosts = _blogPostService.Get(blogPart, pager.GetStartIndex(), pager.PageSize, VersionOptions.Latest).ToArray();
+                pager.PageSize = blogPosts.Count;
+            }
+            else
+                blogPosts = _blogPostService.Get(blogPart, VersionOptions.Latest).ToArray();
+
+            BlogPostsIndexApiViewModel model = new BlogPostsIndexApiViewModel { BlogId = inModel.BlogId, Data = blogPosts, Pager = pager };
+
+            return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
     }
 }

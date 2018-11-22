@@ -1,0 +1,10 @@
+﻿@model dynamic
+
+@{
+    var startDate = Model.Start.ToShortDateString();
+    var startTime = Model.Start.ToShortTimeString();
+    var endDate = Model.End.ToShortDateString();
+    var endTime = Model.End.ToShortTimeString();
+}
+
+<div><span>@startDate @startTime</span>@Display(Model.ContentItem)</div>

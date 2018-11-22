@@ -1,0 +1,17 @@
+﻿<Placement>
+  <Place Parts_Schedule_Edit="Content:7" />
+
+  <Match DisplayType="Detail">
+    <Place Parts_Schedule="Content:5"/>
+  </Match>
+  
+  <Match DisplayType="SummaryAdmin">
+    <Place Parts_Schedule_SummaryAdmin="Content:5" />
+  </Match>
+
+  <Match DisplayType="Summary">
+    <Place Parts_Schedule_Summary="Content:5" />
+  </Match>
+
+  <Place Parts_Schedule_SiteSettings="Content:1" />
+</Placement>

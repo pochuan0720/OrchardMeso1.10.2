@@ -25,7 +25,7 @@ namespace Meso.TokenAuth.Middleware {
                     Configure = app => {
                         var oAuthOptions = new OAuthAuthorizationServerOptions
                         {
-                            TokenEndpointPath = new PathString("/auth/token"),
+                            TokenEndpointPath = new PathString("/api/auth/token"),
                             Provider = new AuthProvider(_workContextAccessor),
                             AccessTokenExpireTimeSpan = TimeSpan.FromDays(30),
                             AllowInsecureHttp = true

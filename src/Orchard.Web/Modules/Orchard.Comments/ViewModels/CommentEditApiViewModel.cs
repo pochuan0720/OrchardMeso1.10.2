@@ -9,6 +9,7 @@ namespace Orchard.Comments.ViewModels
 {
     public class CommentEditApiViewModel
     {
+        public int Id { get; set; }
         [Required]
         [StringLengthMax]
         public string CommentText { get; set; }

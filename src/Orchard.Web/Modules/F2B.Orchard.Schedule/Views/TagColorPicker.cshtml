@@ -1,0 +1,108 @@
+﻿@{
+    Script.Require("jQuery");
+    Script.Require("Spectrum");
+    Style.Require("Spectrum");
+    Style.Require("TagColorPicker");
+}
+
+<input type="checkbox" name="enableTagColors" id="enableTagColors" />
+<label class="forcheckbox" for="enableTagColors">Use custom colors for tags</label>
+
+<div id="cl-tag-colors">
+</div>
+
+<a href="#" id="tag-colors-add-new">Add new row</a>
+
+<input type="hidden" name="TagColors" id="tagColors" value="@Model.Value"/>
+
+@using (Script.Foot())
+{
+    <script type="text/html" id="tagTemplate">
+        <fieldset class="colorset" id="cl-tag-colors-{index}">
+            <label for="cl-tag-{index}">Tag Value</label>
+            <input type="text" class="tagName" name="cl.tag.{index}" id="cl-tag-{index}" value="{tagName}" />
+            <label for="cl-tag-bg-{index}">Background</label>
+            <input type="color" class="bgColor" name="cl.tag.bg.{index}" id="cl-tag-bg-{index}" value="{bgColor}" />
+            <label for="cl-tag-br-{index}">Border</label>
+            <input type="color" class="brColor" name="cl.tag.br.{index}" id="cl-tag-br-{index}" value="{brColor}" />
+            <label for="cl-tag-fg-{index}">Foreground</label>
+            <input type="color" class="fgColor" name="cl.tag.fg.{index}" id="cl-tag-fg-{index}" value="{fgColor}" />
+        </fieldset>
+    </script>
+    
+    <script type="text/javascript">
+        $((function ($) {
+            function createTagSet(index, tagName, bgColor, brColor, fgColor) {
+                var template = $('#tagTemplate').text();
+                var elements = template
+                    .replace(/{index}/g, index)
+                    .replace(/{tagName}/g, tagName)
+                    .replace(/{bgColor}/g, bgColor)
+                    .replace(/{brColor}/g, brColor)
+                    .replace(/{fgColor}/g, fgColor);
+
+                $('#cl-tag-colors').append(elements);
+
+                console.log(elements);
+            }
+
+            function updateTagColors() {
+                var values = [];
+                $('.colorset')
+                    .each(function () {
+                        var el = $(this);
+                        var tag = el.find('.tagName').val();
+                        var bg = el.find('.bgColor').val();
+                        var fg = el.find('.fgColor').val();
+                        var br = el.find('.brColor').val();
+
+                        if (tag.trim().length > 0) {
+                            values.push(tag + "," + bg + "," + br + "," + fg);
+                        }
+                    });
+                var value = values.join(":");
+
+                value = ($('#enableTagColors').prop("checked")?"on":"off") + "|" + value;
+
+                $('#tagColors').val(value);
+            }
+
+            var itemCount = 0;
+
+            var value = $('#tagColors').val();
+            var valueParts = value.split("|");
+            var enabled = valueParts[0];
+            $("#enableTagColors").prop("checked", enabled == "on");
+            var model = [];
+
+            if (valueParts[1].trim().length > 0) {
+                var tags = valueParts[1].split(':');
+                for (i in tags) {
+                    var parts = tags[i].split(',');
+                    createTagSet(i, parts[0], parts[1], parts[2], parts[3]);
+                    itemCount++;
+
+                    console.log(parts);
+                }
+            }
+
+            createTagSet(++itemCount, "", "#5555ff", "#5555ff", "#ffffff");
+
+            $(document).on('change', '.tagName', updateTagColors);
+            $(document).on('change', '.bgColor', updateTagColors);
+            $(document).on('change', '.brColor', updateTagColors);
+            $(document).on('change', '.fgColor', updateTagColors);
+
+            $('#enableTagColors').change(updateTagColors);
+
+            $('#tag-colors-add-new').click(function () {
+                createTagSet(++itemCount, "", "#5555ff", "#5555ff", "#ffffff");
+                return false;
+            });
+
+            console.log(value);
+        })(jQuery));
+    </script>
+    
+
+}

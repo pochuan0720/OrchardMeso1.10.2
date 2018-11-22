@@ -98,10 +98,6 @@
       <Project>{9916839c-39fc-4ceb-a5af-89ca7e87119f}</Project>
       <Name>Orchard.Core</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Contrib.Voting\Contrib.Voting.csproj">
-      <Project>{4da5f35f-e62c-4b49-b5a8-379503257b3a}</Project>
-      <Name>Contrib.Voting</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Content Include="Views\DefinitionTemplates\UserViewTypePartSettings.cshtml" />

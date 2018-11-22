@@ -5,13 +5,10 @@ using Orchard.ContentManagement;
 using Orchard.Data;
 using Orchard.DisplayManagement;
 using Orchard.Localization;
-using Orchard.UI.Navigation;
 using Orchard.UI.Notify;
-using Orchard.Settings;
 using System.Web.Http;
 using Orchard.Core.Common.ViewModels;
 using Orchard.Blogs.ViewModels;
-using System.Collections.Generic;
 using Orchard.Blogs.Handlers;
 using System.Net;
 using System.Web;
@@ -24,7 +21,6 @@ namespace Orchard.Blogs.Controllers {
         private readonly IBlogPostService _blogPostService;
         private readonly IContentManager _contentManager;
         private readonly ITransactionManager _transactionManager;
-        private readonly ISiteService _siteService;
 
         public BlogApiController(
             IOrchardServices services,
@@ -32,14 +28,12 @@ namespace Orchard.Blogs.Controllers {
             IBlogPostService blogPostService,
             IContentManager contentManager,
             ITransactionManager transactionManager,
-            ISiteService siteService,
             IShapeFactory shapeFactory) {
             Services = services;
             _blogService = blogService;
             _blogPostService = blogPostService;
             _contentManager = contentManager;
             _transactionManager = transactionManager;
-            _siteService = siteService;
             T = NullLocalizer.Instance;
             Shape = shapeFactory;
         }
@@ -65,11 +59,9 @@ namespace Orchard.Blogs.Controllers {
             return Ok(new ResultViewModel { Content = blog, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-        
-        [HttpPost]
-        public IHttpActionResult index(int blogId) {
+        private IHttpActionResult query(int id) {
 
-            BlogPart blog = _blogService.Get(blogId, VersionOptions.Latest).As<BlogPart>();
+            BlogPart blog = _blogService.Get(id, VersionOptions.Latest).As<BlogPart>();
 
             if (!Services.Authorizer.Authorize(Permissions.ManageBlogs, blog, T("Not allowed to edit blog")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not allowed to edit blog" });
@@ -82,11 +74,14 @@ namespace Orchard.Blogs.Controllers {
         }
 
         [HttpPost]
-        public IHttpActionResult delete(int blogId) {
+        public IHttpActionResult delete(BlogEditApiViewModel inModel) {
+            if (inModel == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+
             if (!Services.Authorizer.Authorize(Permissions.ManageBlogs, T("Couldn't delete blog")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't delete blog" });
 
-            var blog = _blogService.Get(blogId, VersionOptions.DraftRequired);
+            var blog = _blogService.Get(inModel.Id, VersionOptions.DraftRequired);
             if (blog == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound)});
 
@@ -97,10 +92,13 @@ namespace Orchard.Blogs.Controllers {
             return Ok(new ResultViewModel { Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-
         [HttpPost]
-        public IHttpActionResult update(int blogId, BlogEditApiViewModel inModel) {
-            var blog = _blogService.Get(blogId, VersionOptions.DraftRequired);
+        public IHttpActionResult update(BlogEditApiViewModel inModel) {
+
+            if(inModel == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+
+            var blog = _blogService.Get(inModel.Id, VersionOptions.DraftRequired);
 
             if (blog == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound)});
@@ -117,7 +115,9 @@ namespace Orchard.Blogs.Controllers {
         }
 
         [HttpPost]
-        public IHttpActionResult index() {
+        public IHttpActionResult query(BlogsIndexApiViewModel inModel) {
+            if (inModel != null && inModel.Id != null)
+                return query((int)inModel.Id);
 
             var list = Services.New.List();
             list.AddRange(_blogService.Get(VersionOptions.Latest)
@@ -132,40 +132,12 @@ namespace Orchard.Blogs.Controllers {
             int totalCount = list.Items.Count;
             var model = new BlogsIndexApiViewModel
             {
-                Blogs = list,
+                Data = list,
                 TotalCount = totalCount
             };
 
             return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
 
-        }
-
-        [HttpPost]
-        public IHttpActionResult posts(int blogId, BlogPostsIndexApiViewModel inModel) {
-            Pager pager = null;
-
-            BlogPart blogPart = _blogService.Get(blogId, VersionOptions.Latest).As<BlogPart>();
-
-            if (blogPart == null)
-                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound)});
-
-            var totalItemCount = _blogPostService.PostCount(blogPart, VersionOptions.Latest);
-            if (inModel != null && inModel.Pager != null)
-                pager = new Pager(_siteService.GetSiteSettings(), inModel.Pager.Page, inModel.Pager.PageSize, totalItemCount);
-
-            IList<BlogPostPart> blogPosts;
-
-            if (pager != null)
-            {
-                blogPosts = _blogPostService.Get(blogPart, pager.GetStartIndex(), pager.PageSize, VersionOptions.Latest).ToArray();
-                pager.PageSize = blogPosts.Count;
-            }
-            else
-                blogPosts = _blogPostService.Get(blogPart, VersionOptions.Latest).ToArray();
-
-            BlogPostsIndexApiViewModel model = new BlogPostsIndexApiViewModel { BlogPosts  = blogPosts, Pager  = pager };
-
-            return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
     }

@@ -1,0 +1,61 @@
+﻿.upcoming-date {
+    text-align: center;
+    width: 3.5em;
+    /*border: solid 1px black;*/
+    /*-ms-border-radius: 5px;*/
+    /*border-radius: 5px;*/
+    margin-top: 3px;
+}
+
+.upcoming .upcoming-month {
+    font-size: 0.7em;
+    line-height: 1.8em;
+    text-transform: uppercase;
+    display: block;
+    border: solid 1px black;
+    border-bottom: none;
+    border-radius: 5px 5px 0 0;
+    background-color: black;
+    color: white;
+}
+
+.upcoming .upcoming-day {
+    font-size: 1.7em;
+    padding: 0;
+    display: block;
+    line-height:1em;
+    border-width: 0 1px;
+    border-color: black;
+    border-style: solid;
+    color: black;
+    background-color: white;
+}
+
+.upcoming .upcoming-wkdy {
+    font-size: 0.8em;
+    line-height: 1.3em;
+    display: block;
+    border: solid 1px black;
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+    color: black;
+    background-color: white;
+}
+
+.upcoming .upcoming-date-items .upcoming-event {
+    margin: 0.5em 0 0.5em 4.0em;
+    line-height: 1.2em;
+}
+
+.upcoming .upcoming-date {
+    float: left;
+    margin-right: .5em;
+}
+
+.upcoming .upcoming-time {
+    font-weight: bold;
+}
+
+.clearfix {
+    clear: both;
+}

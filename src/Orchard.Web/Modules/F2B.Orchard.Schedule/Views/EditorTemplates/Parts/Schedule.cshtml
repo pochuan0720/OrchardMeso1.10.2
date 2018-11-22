@@ -1,0 +1,234 @@
+﻿@using F2B.Orchard.Schedule.ViewModels
+@model EditScheduleViewModel
+@{
+    Style.Require("F2B.Orchard.Schedule");
+    Style.Require("jQuery.DateTimePicker");
+    Style.Require("jQueryUI_Orchard");
+
+    Script.Require("jQuery").AtFoot();
+    Script.Require("jQueryUI_Dialog").AtFoot();
+    Script.Require("jQuery.DateTimePicker").AtFoot();
+    Script.Require("F2B.Orchard.Schedule").AtFoot();
+}
+
+<fieldset class="schedule">
+    <legend>Schedule Template</legend>
+    <div>
+        <div>
+            @{
+                var startDateFieldId = Html.FieldIdFor(m => m.StartDate);
+                var endDateFieldId = Html.FieldIdFor(m => m.EndDate);
+            }
+            <span class="date">
+                <input type="text" id="from_date" class="text-box single-line" size="9" data-bind="value: displayStartDate, datePicker: {dateFormat: '@Model.DateFormat'}" /></span>
+            <span class="time">
+                <input type="text" id="from_time" class="text-box single-line" size="7" data-bind="value: displayStartTime, visible: !allDay(), timePicker: {step: 15}" /></span>
+            <span>to</span>
+            <span class="time">
+                <input type="text" id="to_time" class="text-box single-line" size="7" data-bind="css: { beforeStart: !durationIsValid() }, value: displayEndTime, visible: !allDay(), timePicker: {step: 15}" /></span>
+            <span class="date">
+                <input type="text" id="to_date" class="text-box single-line" size="9" data-bind="css: { beforeStart: !durationIsValid() }, value: displayEndDate, datePicker: {dateFormat: '@Model.DateFormat'}, fromDate: displayStartDate" /></span>
+
+            <input type="hidden" name="@Html.FieldNameFor(m => m.StartDate)" id="@Html.FieldIdFor(m => m.StartDate)" data-bind="value: saveStartDate" />
+            <input type="hidden" name="@Html.FieldNameFor(m => m.StartTime)" id="@Html.FieldIdFor(m => m.StartTime)" data-bind="value: saveStartTime" />
+            <input type="hidden" name="@Html.FieldNameFor(m => m.EndDate)" id="@Html.FieldIdFor(m => m.EndDate)" data-bind="value: saveEndDate" />
+            <input type="hidden" name="@Html.FieldNameFor(m => m.EndTime)" id="@Html.FieldIdFor(m => m.EndTime)" data-bind="value: saveEndTime"/>
+            @*@Html.DropDownListFor(m => m.TimeZone, EditScheduleViewModel.TimeZones)*@
+        </div>
+        <div>
+            <span>@Html.CheckBoxFor(m => m.AllDay, new { data_bind = "checked: allDay" }) All Day</span>
+            <span>@Html.CheckBoxFor(m => m.Repeat, new { data_bind = "checked: repeat" })
+                <span data-bind="text: repeat()?'Repeat: ':'Repeat...'">Repeat...</span>
+                <span data-bind="visible: repeat" style="display: none">
+                    <b data-bind="text: repeatSummaryFinal"></b>&nbsp;
+                <a href="#" id="openRepeatDialog">Edit</a>
+                </span>
+            </span>
+        </div>
+    </div>
+</fieldset>
+<fieldset class="excluded">
+    <legend>Excluded Starting Dates</legend>
+    <div>
+        <input type="text" size="9" data-bind="value: excludedDate, datePicker: {dateFormat: '@Model.DateFormat'}" id="excludeCalendar" />
+        <button id="excludeAddButton" class="button disabled" data-bind="enable: isValidExcludedDate, click: addExcludedDate, css: { disabled: !isValidExcludedDate() }">Add</button>
+        <button id="excludeRemoveButton" class="button disabled" data-bind="enable: selectedExcludedDate, click: removeExcludedDate, css: { disabled: !selectedExcludedDate() }" style="margin-left: 10px">Remove</button>
+    </div>
+    <div>
+        <select id="excluded" style="display: none" size="5"
+            data-bind="visible: displayExcludedDates, value: selectedExcludedDate, options: excludedDates, optionsText: formatDate">
+        </select>
+    </div>
+</fieldset>
+<fieldset>
+    @Html.HiddenFor(m => m.RepeatType, new { data_bind = "value: repeatType" })
+    @Html.HiddenFor(m => m.RepeatInterval, new { data_bind = "value: repeatInterval" })
+    @Html.HiddenFor(m => m.RepeatDays, new { data_bind = "value: repeatDays" })
+
+    @Html.HiddenFor(m => m.TerminalDate, new { data_bind = "value: saveTerminalDate" })
+    @Html.HiddenFor(m => m.EndValue, new { data_bind = "value: endValue" })
+    @Html.HiddenFor(m => m.Occurrences, new { data_bind = "value: internalOccurrences" })
+
+    @Html.HiddenFor(m => m.LastDayOrWeek, new { data_bind = "value: lastDayOrWeekOfMonth" })
+    @*@Html.HiddenFor(m => m.WeekOfMonth, new { data_bind = "value: monthWeek" })*@
+
+    @Html.HiddenFor(m => m.ExcludedDates, new { data_bind = "value: excludedDatesList" })
+
+    @Html.HiddenFor(m => m.Offset, new { data_bind = "value: offset" })
+    @Html.HiddenFor(m => m.FromEndOfMonth, new { data_bind = "value: fromEndOfMonth" })
+</fieldset>
+
+<div id="repeat-dialog" title="Repeat" style="display: none"
+    data-binding="jqueryui: {widget: 'dialog', options: {autoOpen: false, width: 450, height: 400, modal: true}}">
+    <fieldset class="repeat">
+        <legend style="display: none">Repeat Options</legend>
+        <div class="field-group">
+            <label for="repeatOptions">Repeats</label>
+            @Html.DropDownList("repeatOptions", EditScheduleViewModel.RepeatOptions, new { data_bind = "value: repeatType" })
+        </div>
+        <div class="field-group">
+            <label for="interval">Repeat every</label>
+            <select name="interval" data-bind="options: repeatIntervalOptions, value: repeatInterval"></select>
+            <span data-bind="text: repeatIntervalUnit" />
+        </div>
+        <div class="field-group" data-bind="visible: showDays" style="display: none">
+            <label>Repeat on</label>
+            <input type="checkbox" data-bind="checked: rptSU" />S
+            <input type="checkbox" data-bind="checked: rptMO" />M
+            <input type="checkbox" data-bind="checked: rptTU" />T
+            <input type="checkbox" data-bind="checked: rptWE" />W
+            <input type="checkbox" data-bind="checked: rptTH" />T
+            <input type="checkbox" data-bind="checked: rptFR" />F
+            <input type="checkbox" data-bind="checked: rptSA" />S
+        </div>
+        <div class="field-group">
+            <label>Starts on</label>
+            <input type="text" disabled="disabled" data-bind="value: displayStartDate" />
+        </div>
+        <div class="field-group" data-bind="visible: byMonth">
+            <label>From</label>
+            <input type="radio" data-bind="checked: fromStartOrEndOfMonth" value="start" />Start of month
+            <input type="radio" data-bind="checked: fromStartOrEndOfMonth" value="end" />End of month
+        </div>
+        <div class="field-group" data-nobind="visible: showLastDayOfMonth" style="display: none">
+            <label>For</label>
+            <input type="checkbox" data-nobind="checked: lastDayOrWeekOfMonth" />Last day of the month
+        </div>
+        <div class="field-group" data-nobind="visible: showLastWeekDayOfMonth" style="display: none">
+            <label>For</label>
+            <input type="checkbox" data-nobind="checked: lastDayOrWeekOfMonth" />Last <span data-bind="text: dayWeek" />of the month
+        </div>
+        <div class="field-group" data-nobind="visible: showWeeks" style="display: none">
+            <label>For weeks</label>
+            <input type="checkbox" data-bind="checked: rptWeek1" />1
+            <input type="checkbox" data-bind="checked: rptWeek2" />2
+            <input type="checkbox" data-bind="checked: rptWeek3" />3
+            <input type="checkbox" data-bind="checked: rptWeek4" />4
+            <input type="checkbox" data-bind="checked: rptWeekLst" />Last
+        </div>
+        <div class="field-group">
+            <label>Ends</label>
+            <input type="radio" name="stop" value="never" data-bind="checked: endValue" />Never<br />
+            <input type="radio" name="stop" value="times" data-bind="checked: endValue" />After
+                <input type="text" name="occurrences" data-bind="enable: endValue() == 'times', value: occurrences" size="7" />
+            occurrences<br />
+            <input type="radio" name="stop" value="date" data-bind="checked: endValue" />On
+                <input type="text" data-bind="enable: endValue() == 'date', value: displayTerminalDate, datePicker: {dateFormat: '@Model.DateFormat'}" />
+        </div>
+        <div class="field-group" data-nobind="visible: showMonths" style="display: none">
+            <label>In months</label>
+            <input type="checkbox" data-bind="checked: rptJan" />Jan
+            <input type="checkbox" data-bind="checked: rptFeb" />Feb
+            <input type="checkbox" data-bind="checked: rptMar" />Mar
+            <input type="checkbox" data-bind="checked: rptApr" />Apr
+            <input type="checkbox" data-bind="checked: rptMay" />May
+            <input type="checkbox" data-bind="checked: rptJun" />Jun
+            <br />
+            <input type="checkbox" data-bind="checked: rptJul" />Jul
+            <input type="checkbox" data-bind="checked: rptAug" />Aug
+            <input type="checkbox" data-bind="checked: rptSep" />Sep
+            <input type="checkbox" data-bind="checked: rptOct" />Oct
+            <input type="checkbox" data-bind="checked: rptNov" />Nov
+            <input type="checkbox" data-bind="checked: rptDec" />Dec
+            <input type="hidden" data-bind="value: repeatMonths" name="@Html.FieldNameFor(m => m.RepeatMonths)" />
+        </div>
+        <div class="field-group">
+            <label>Offset by</label>
+            <select data-bind="value: offset">
+                <option value="-6">-6</option>
+                <option value="-5">-5</option>
+                <option value="-4">-4</option>
+                <option value="-3">-3</option>
+                <option value="-2">-2</option>
+                <option value="-1">-1</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+            </select>
+            Days
+        </div>
+        <div class="field-group">
+            <label>Summary</label>
+            <span data-bind="text: repeatSummary" />
+        </div>
+    </fieldset>
+</div>
+
+@using (Script.Foot())
+{
+    <script type="text/javascript">
+        //<![CDATA[
+        var foo; 
+        $(function () {
+            var ops = bindScheduleViewModel(
+                {
+                    StartDate: "@Model.StartDate",
+                    StartTime: "@Model.StartTime",
+                    //EndDate: "@Model.EndDate",
+                    //EndTime: "@Model.EndTime",
+                    Duration: @Model.Duration,
+                    AllDay: @(Model.AllDay ? "true" : "false"),
+                    Repeat: @(Model.Repeat ? "true" : "false"),
+                    RepeatInterval: @Model.RepeatInterval,
+                    RepeatType: "@Model.RepeatType.ToString()",
+                    RepeatDays: @Model.RepeatDays,
+                    RepeatMonths: @Model.RepeatMonths,
+                    RepeatWeeks: @Model.RepeatWeeks,
+                    RepeatDayOfMonth: @Model.RepeatDayOfMonth,
+                    EndValue: "@Model.EndValue",
+                    TerminalDate: "@Model.TerminalDate",
+                    Occurrences: @Model.Occurrences,
+                    LastDayOrWeek: @(Model.LastDayOrWeek ? "true" : "false"),
+                    ExcludedDates: "@Model.ExcludedDates",
+                    FromEndOfMonth: @(Model.FromEndOfMonth ? "true" : "false"),
+                    Offset: "@Model.Offset",
+                    DateFormat: "@Model.DateFormat"
+                },
+                "repeat-dialog"
+            );
+
+            $('#repeat-dialog').dialog({
+                autoOpen: false,
+                height: 450,
+                width: 400,
+                modal: true,
+                buttons: {
+                    "Done": function() { ops.finish(true); $(this).dialog("close"); },
+                    "Cancel": function() { ops.finish(false); $(this).dialog("close"); }
+                }
+            });
+            $('#openRepeatDialog').click(function() { ops.backup(); $('#repeat-dialog').dialog("open"); });
+
+            //$(".excluded legend").expandoControl(function (controller) { return controller.nextAll(".expando"); }, { collapse: true, remember: false });
+            //$("#excludeCalendar").datepicker();
+            //$('#excludeAddButton').button();
+
+            foo = ops;
+        });
+        //]]>
+    </script>
+}

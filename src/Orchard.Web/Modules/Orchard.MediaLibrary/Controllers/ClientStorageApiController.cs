@@ -45,29 +45,29 @@ namespace Orchard.MediaLibrary.Controllers {
 
 
         [HttpPost]
-        public IHttpActionResult index(string folderPath, MediaManagerMediaItemsApiViewModel inModel)
+        public IHttpActionResult query(MediaManagerMediaItemsApiViewModel inModel)
         {
             if (!Services.Authorizer.Authorize(Permissions.ManageOwnMedia, T("Cannot view media")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Cannot view media" });
 
 
-            if(!string.IsNullOrEmpty(folderPath))
-                folderPath = Path.Combine(folderPath.Split('/'));
+            if(!string.IsNullOrEmpty(inModel.FolderPath))
+                inModel.FolderPath = Path.Combine(inModel.FolderPath.Split('/'));
 
             // Check permission
-            if (!Services.Authorizer.Authorize(Permissions.ManageMediaContent) && !_mediaLibraryService.CanManageMediaFolder(folderPath))
+            if (!Services.Authorizer.Authorize(Permissions.ManageMediaContent) && !_mediaLibraryService.CanManageMediaFolder(inModel.FolderPath))
             {
                 var model = new MediaManagerMediaItemsViewModel
                 {
                     MediaItems = new List<MediaManagerMediaItemViewModel>(),
                     MediaItemsCount = 0,
-                    FolderPath = folderPath
+                    FolderPath = inModel.FolderPath
                 };
 
                 return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
             }
             Pager pager = null;
-            var mediaPartsCount = _mediaLibraryService.GetMediaContentItemsCount(folderPath, "", VersionOptions.Latest);
+            var mediaPartsCount = _mediaLibraryService.GetMediaContentItemsCount(inModel.FolderPath, "", VersionOptions.Latest);
 
             if (inModel != null && inModel.Pager != null)
                 pager = new Pager(_siteService.GetSiteSettings(), inModel.Pager.Page, inModel.Pager.PageSize, mediaPartsCount);
@@ -76,15 +76,16 @@ namespace Orchard.MediaLibrary.Controllers {
 
             if (pager != null)
             {
-                mediaParts = _mediaLibraryService.GetMediaContentItems(folderPath, inModel.Pager.GetStartIndex(), inModel.Pager.PageSize, "created", "", VersionOptions.Latest).ToArray();
+                mediaParts = _mediaLibraryService.GetMediaContentItems(inModel.FolderPath, inModel.Pager.GetStartIndex(), inModel.Pager.PageSize, "created", "", VersionOptions.Latest).ToArray();
                 pager.PageSize = mediaParts.Count;
             }
             else
-                mediaParts = _mediaLibraryService.GetMediaContentItems(folderPath, "created", "", VersionOptions.Latest).ToArray();
+                mediaParts = _mediaLibraryService.GetMediaContentItems(inModel.FolderPath, "created", "", VersionOptions.Latest).ToArray();
 
 
             var viewModel = new MediaManagerMediaItemsApiViewModel
             {
+                FolderPath = inModel.FolderPath,
                 MediaItems = mediaParts.ToList<MediaPart>(),
                 Pager = pager
             };
@@ -217,22 +218,18 @@ namespace Orchard.MediaLibrary.Controllers {
         }
 
         [HttpPost]
-        public IHttpActionResult delete(string mediaIds)
+        public IHttpActionResult delete(MediaManagerEditApiViewModel inModel)
         {
 
             if (!Services.Authorizer.Authorize(Permissions.ManageOwnMedia, T("Couldn't delete media items")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't delete media items" });
 
-            int[] mediaItemIds = null;
-            if(!string.IsNullOrEmpty(mediaIds))
-                mediaItemIds = mediaIds.Split('/').Select(int.Parse).ToArray();
-
-            if(mediaItemIds == null || mediaItemIds.Length<=0)
+            if(inModel == null || inModel.Ids == null || inModel.Ids.Length<=0)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             var mediaItems = Services.ContentManager
                 .Query(VersionOptions.Latest)
-                .ForContentItems(mediaItemIds)
+                .ForContentItems(inModel.Ids)
                 .List()
                 .Select(x => x.As<MediaPart>())
                 .Where(x => x != null);

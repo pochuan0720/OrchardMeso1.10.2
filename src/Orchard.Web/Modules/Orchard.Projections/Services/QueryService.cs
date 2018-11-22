@@ -30,6 +30,13 @@ namespace Orchard.Projections.Services {
             return _contentManager.Get<QueryPart>(id);
         }
 
+        public QueryPart GetQuery(string name)
+        {
+            var querylist = _contentManager.Query("Query").List<QueryPart>();
+            querylist.Where(u => u.Name == name).FirstOrDefault();
+            return querylist.Where(u => u.Name == name).FirstOrDefault();
+        }
+
         public void DeleteQuery(int id) {
             var query = _contentManager.Get(id);
             

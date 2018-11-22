@@ -1,0 +1,55 @@
+﻿@model dynamic
+
+@{
+    Style.Require("UpcomingEvents");
+    var currentDate = DateTime.MinValue;
+    var shown = false;
+    var tag = new TagBuilder("div");
+    tag.AddCssClass("clearfix");
+    
+    var dateTag = new TagBuilder("div");
+    dateTag.AddCssClass("upcoming-date-group");
+
+    var dayEventsTag = new TagBuilder("div");
+    dayEventsTag.AddCssClass("upcoming-date-items");
+}
+
+<div class="upcoming">
+    @foreach (var item in Model.Items)
+    {
+        var time = item.AllDay ? "All Day" : item.Start.ToShortTimeString();
+        if (item.Start.Date != currentDate)
+        {
+            currentDate = item.Start.Date;
+            var mon = currentDate.ToString("MMM");
+            var day = currentDate.Day;
+            var wkdy = currentDate.ToString("ddd");
+            if (shown)
+            {
+                @Html.Raw(dayEventsTag.ToString(TagRenderMode.EndTag))
+                @Html.Raw(dateTag.ToString(TagRenderMode.EndTag))
+                @Html.Raw(tag.ToString(TagRenderMode.EndTag))
+            }
+            @Html.Raw(tag.ToString(TagRenderMode.StartTag))
+            shown = true;
+            @Html.Raw(dateTag.ToString(TagRenderMode.StartTag))
+            <div class="upcoming-date">
+                <span class="upcoming-month">@mon</span>
+                <span class="upcoming-day">@day</span>
+                <span class="upcoming-wkdy">@wkdy</span>
+            </div>
+            @Html.Raw(dayEventsTag.ToString(TagRenderMode.StartTag))
+        }
+        <div class="upcoming-event">
+            <span class="upcoming-time">@time</span>
+            @Display(item.ContentItem)
+        </div>
+    }
+
+    @if (shown)
+    {
+        @Html.Raw(dayEventsTag.ToString(TagRenderMode.EndTag))
+        @Html.Raw(dateTag.ToString(TagRenderMode.EndTag))
+        @Html.Raw(tag.ToString(TagRenderMode.EndTag))
+    }
+</div>

@@ -6,6 +6,7 @@ using Orchard.Core.Title.Models;
 using Orchard.Localization;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Xml;
 
@@ -15,7 +16,11 @@ namespace Orchard.Core.Common.Handlers
     {
         protected JObject fields = null;
 
-        public UpdateModelHandler(object _fields)
+        public UpdateModelHandler()
+        {
+        }
+
+            public UpdateModelHandler(object _fields)
         {
             if (_fields != null)
             {
@@ -50,7 +55,13 @@ namespace Orchard.Core.Common.Handlers
                 }
                 else if (type.Equals("Orchard.Fields.ViewModels.DateTimeFieldViewModel"))
                 {
-                    _model.Value = (DateTime)fields.GetValue(prefix);
+                    DateTime dt = (DateTime)fields.GetValue(prefix);
+                    string date = dt.Date.ToString("MM/dd/yyyy");
+                    string time = dt.Date.ToString("h:mm", new CultureInfo("en-US"));
+                    _model.Editor = new DateTimeEditor() {
+                        Date = date,
+                        Time = time,
+                    };
                 }
                 else if (type.Equals("Orchard.Taxonomies.ViewModels.TaxonomyFieldViewModel"))
                 {
@@ -115,6 +126,47 @@ namespace Orchard.Core.Common.Handlers
             }
 
             return checkeds;
+        }
+
+        static public JObject GetData(dynamic model)
+        {
+            JObject obj = new JObject();
+
+            foreach (var item in model.Content.Items)
+            {
+                if (item.TemplateName != null)
+                {
+                    if (item.TemplateName.Equals("Fields/Input.Edit") || item.TemplateName.Equals("Fields/Enumeration.Edit"))
+                        obj.Add(new JProperty(item.Prefix, item.Model.Value));
+                    else if (item.TemplateName.Equals("Fields/Numeric.Edit"))
+                        if (string.IsNullOrEmpty(item.Model.Value))
+                            obj.Add(new JProperty(item.Prefix, ""));
+                        else
+                            obj.Add(new JProperty(item.Prefix, int.Parse(item.Model.Value)));
+                    else if (item.TemplateName.Equals("Fields/DateTime.Edit"))
+                        obj.Add(new JProperty(item.Prefix, item.ContentField.DateTime));
+                    else if (item.TemplateName.Equals("Fields/MediaLibraryPicker.Edit"))
+                        obj.Add(new JProperty(item.Prefix, item.Model.Field.Ids));
+                    else if (item.TemplateName.Equals("Fields/TaxonomyField"))
+                    {
+                        var viewModel = item.Model;
+                        var checkedTerms = new List<int>();
+                        foreach (var term in viewModel.Terms)
+                        {
+                            if (term.IsChecked)
+                                checkedTerms.Add(term.Id);
+                        }
+                        obj.Add(new JProperty(item.Prefix, checkedTerms.ToArray()));
+                    }
+
+                    else if (item.TemplateName.Equals("Parts/Roles.UserRoles"))
+                        obj.Add(new JProperty(item.Prefix, item.Model.UserRoles.Roles));
+                    else
+                        obj.Add(new JProperty(item.Prefix, item.TemplateName));
+                }
+            }
+
+            return obj;
         }
     }
 }

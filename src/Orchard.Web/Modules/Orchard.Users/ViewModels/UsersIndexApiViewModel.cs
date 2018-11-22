@@ -5,7 +5,8 @@ using Orchard.Users.Models;
 namespace Orchard.Users.ViewModels {
 
     public class UsersIndexApiViewModel  {
-        public IList<UserPartRecord> Users { get; set; }
+        public int? Id { get; set; }
+        public IList<UserPart> Data { get; set; }
         public UserIndexOptions Options { get; set; }
         public Pager Pager { get; set; }
     }

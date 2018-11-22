@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Web.Http;
 using Orchard.Comments.Models;
@@ -7,9 +6,6 @@ using Orchard.ContentManagement;
 using Orchard.DisplayManagement;
 using Orchard.Localization;
 using Orchard.Logging;
-using Orchard.Mvc;
-using Orchard.Mvc.Extensions;
-using Orchard.UI.Navigation;
 using Orchard.UI.Notify;
 using Orchard.Comments.ViewModels;
 using Orchard.Comments.Services;
@@ -47,8 +43,10 @@ namespace Orchard.Comments.Controllers {
         dynamic Shape { get; set; }
 
         [HttpPost]
-        public IHttpActionResult details(int contentId, CommentDetailsOptions options) {
+        public IHttpActionResult query(CommentsDetailsViewModel inModel) {
             // Default options
+            CommentDetailsOptions options = inModel.Options;
+
             if (options == null)
                 options = new CommentDetailsOptions();
 
@@ -56,13 +54,13 @@ namespace Orchard.Comments.Controllers {
             IContentQuery<CommentPart, CommentPartRecord> comments;
             switch (options.Filter) {
                 case CommentDetailsFilter.All:
-                    comments = _commentService.GetCommentsForCommentedContent(contentId);
+                    comments = _commentService.GetCommentsForCommentedContent(inModel.CommentedItemId);
                     break;
                 case CommentDetailsFilter.Approved:
-                    comments = _commentService.GetCommentsForCommentedContent(contentId, CommentStatus.Approved);
+                    comments = _commentService.GetCommentsForCommentedContent(inModel.CommentedItemId, CommentStatus.Approved);
                     break;
                 case CommentDetailsFilter.Pending:
-                    comments = _commentService.GetCommentsForCommentedContent(contentId, CommentStatus.Pending);
+                    comments = _commentService.GetCommentsForCommentedContent(inModel.CommentedItemId, CommentStatus.Pending);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -176,12 +174,12 @@ namespace Orchard.Comments.Controllers {
         }
 
         [HttpPost]
-        public IHttpActionResult update(int contentId, CommentEditApiViewModel inModel)
+        public IHttpActionResult update(CommentEditApiViewModel inModel)
         {
             if (!_orchardServices.Authorizer.Authorize(Permissions.ManageComments, T("Couldn't edit comment")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't edit comment" });
 
-            var commentPart = _contentManager.Get<CommentPart>(contentId);
+            var commentPart = _contentManager.Get<CommentPart>(inModel.Id);
 
             if(commentPart == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
@@ -192,17 +190,17 @@ namespace Orchard.Comments.Controllers {
         }
 
         [HttpPost]
-        public IHttpActionResult delete(int contentId)
+        public IHttpActionResult delete(CommentEditApiViewModel inModel)
         {
             if (!_orchardServices.Authorizer.Authorize(Permissions.ManageComments, T("Couldn't delete comment")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't delete comment" });
 
-            var commentPart = _contentManager.Get<CommentPart>(contentId);
+            var commentPart = _contentManager.Get<CommentPart>(inModel.Id);
             if (commentPart == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             int commentedOn = commentPart.Record.CommentedOn;
-            _commentService.DeleteComment(contentId);
+            _commentService.DeleteComment(inModel.Id);
 
             return Ok(new ResultViewModel { Content = commentPart, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }

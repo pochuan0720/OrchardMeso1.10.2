@@ -1,0 +1,43 @@
+﻿@using F2B.Orchard.Schedule.Models
+
+@{
+    SchedulePart schedule = Model.Schedule;
+
+    var eventStartDate = schedule.StartDate;
+    if (!schedule.AllDay)
+    {
+        eventStartDate += schedule.StartTime;
+    }
+
+    var eventEndDate = eventStartDate + schedule.Duration;
+    if (schedule.AllDay) {
+        eventEndDate -= TimeSpan.FromSeconds(1);
+    }
+}
+
+<div>
+    <label>Schedule</label>
+    @if (schedule.AllDay)
+    {
+        <div class="allDay">
+            <span>All day</span>
+            <span class="fromDate">@eventStartDate.ToString(Model.DisplayFormat)</span>
+            <span>&ndash;</span>
+            <span class="toDate">@eventEndDate.ToString(Model.DisplayFormat)</span>
+        </div>
+    }
+    else
+    {
+        <div class="timed">
+            <span class="fromDate">@eventStartDate.ToString(Model.DisplayFormat)</span>
+            <span class="fromTime">@eventStartDate.ToShortTimeString()</span>
+            <span>&ndash;</span>
+            <span class="toTime">@eventEndDate.ToShortTimeString()</span>
+            <span class="toDate">@eventEndDate.ToString(Model.DisplayFormat)</span>
+        </div>
+    }
+
+    <div class="recurrence">
+        @Model.Recurrence
+    </div>
+</div>
