@@ -1,0 +1,337 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{399B3BDA-FD1B-4AF7-AAB9-A19C18723F5C}</ProjectGuid>
+    <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Orchard.Schedule</RootNamespace>
+    <AssemblyName>Orchard.Schedule</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <MvcBuildViews>false</MvcBuildViews>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <OldToolsVersion>4.0</OldToolsVersion>
+    <UpgradeBackupLocation />
+    <TargetFrameworkProfile />
+    <UseIISExpress>false</UseIISExpress>
+    <IISExpressSSLPort />
+    <IISExpressAnonymousAuthentication />
+    <IISExpressWindowsAuthentication />
+    <IISExpressUseClassicPipelineMode />
+    <Use64BitIISExpress />
+    <UseGlobalApplicationHostFile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <CodeAnalysisRuleSet>..\..\..\OrchardBasicCorrectness.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\lib\newtonsoft.json\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.ComponentModel.DataAnnotations">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Web.ApplicationServices" />
+    <Reference Include="System.Web.DynamicData" />
+    <Reference Include="System.Web.Entity" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Web.Http">
+      <HintPath>..\..\..\packages\Microsoft.AspNet.WebApi.Core.5.2.3\lib\net45\System.Web.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Abstractions" />
+    <Reference Include="System.Web.Http.WebHost">
+      <HintPath>..\..\..\packages\Microsoft.AspNet.WebApi.WebHost.5.2.3\lib\net45\System.Web.Http.WebHost.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Mvc, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\packages\Microsoft.AspNet.Mvc.5.2.3\lib\net45\System.Web.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Routing" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Xml.Linq" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="GPL-LICENSE.txt" />
+    <Content Include="MIT-LICENSE.txt" />
+    <Content Include="ReadMe.txt" />
+    <Content Include="Scripts\fullcalendar.js" />
+    <Content Include="Scripts\fullcalendar.min.js" />
+    <Content Include="Scripts\jquery.datetimepicker.js" />
+    <Content Include="Scripts\jquery.datetimepicker.min.js">
+      <DependentUpon>jquery.datetimepicker.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\jquery.qtip.js" />
+    <Content Include="Scripts\jquery.qtip.min.js" />
+    <Content Include="Scripts\knockout-jquery-ui-widget.js" />
+    <Content Include="Scripts\moment.min.js" />
+    <Content Include="Scripts\schedule.bindings.js" />
+    <Content Include="Scripts\schedule.bindings.min.js">
+      <DependentUpon>schedule.bindings.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\schedule.extensions.js" />
+    <Content Include="Scripts\schedule.extensions.min.js">
+      <DependentUpon>schedule.extensions.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\schedule.js" />
+    <Content Include="Scripts\schedule.min.js">
+      <DependentUpon>schedule.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\spectrum.js" />
+    <Content Include="Scripts\spectrum.min.js">
+      <DependentUpon>spectrum.js</DependentUpon>
+    </Content>
+    <Content Include="Scripts\UpcomingEvents.js" />
+    <Content Include="Styles\fullcalendar.css" />
+    <Content Include="Styles\fullcalendar.print.css" />
+    <Content Include="Styles\jquery.datetimepicker.css" />
+    <Content Include="Styles\jquery.datetimepicker.min.css">
+      <DependentUpon>jquery.datetimepicker.css</DependentUpon>
+    </Content>
+    <Content Include="Styles\jquery.qtip.css" />
+    <Content Include="Styles\jquery.qtip.min.css" />
+    <Content Include="Styles\schedule.css" />
+    <Content Include="Styles\spectrum.css" />
+    <Content Include="Styles\spectrum.min.css">
+      <DependentUpon>spectrum.css</DependentUpon>
+    </Content>
+    <Content Include="Styles\TagColorPicker.css" />
+    <Content Include="Styles\UpcomingEvents.css" />
+    <Content Include="Web.config" />
+    <Content Include="Views\Web.config" />
+    <Content Include="Scripts\Web.config" />
+    <Content Include="Styles\Web.config" />
+    <Content Include="Properties\AssemblyInfo.cs" />
+    <Content Include="Module.txt" />
+    <Content Include="Views\Content-SimpleEvent.Blurb.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Orchard\Orchard.Framework.csproj">
+      <Project>{2D1D92BB-4555-4CBE-8D0E-63563D6CE4C6}</Project>
+      <Name>Orchard.Framework</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Core\Orchard.Core.csproj">
+      <Project>{9916839C-39FC-4CEB-A5AF-89CA7E87119F}</Project>
+      <Name>Orchard.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Orchard.Autoroute\Orchard.Autoroute.csproj">
+      <Project>{66fccd76-2761-47e3-8d11-b45d0001ddaa}</Project>
+      <Name>Orchard.Autoroute</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Orchard.Forms\Orchard.Forms.csproj">
+      <Project>{642a49d7-8752-4177-80d6-bfbbcfad3de0}</Project>
+      <Name>Orchard.Forms</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Orchard.Projections\Orchard.Projections.csproj">
+      <Project>{5531e894-d259-45a3-aa61-26dbe720c1ce}</Project>
+      <Name>Orchard.Projections</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Orchard.Tags\Orchard.Tags.csproj">
+      <Project>{5d0f00f0-26c9-4785-ad61-b85710c60eb0}</Project>
+      <Name>Orchard.Tags</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Orchard.Tokens\Orchard.Tokens.csproj">
+      <Project>{6f759635-13d7-4e94-bcc9-80445d63f117}</Project>
+      <Name>Orchard.Tokens</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Controllers\CalendarApiController.cs" />
+    <Compile Include="Controllers\CalendarLayoutController.cs" />
+    <Compile Include="Controllers\ScheduleDetailController.cs" />
+    <Compile Include="Drivers\SchedulePartDriver.cs" />
+    <Compile Include="Drivers\ScheduleSettingsPartDriver.cs" />
+    <Compile Include="Handlers\ScheduleHandler.cs" />
+    <Compile Include="Handlers\ScheduleSettingsHandler.cs" />
+    <Compile Include="Permissions.cs" />
+    <Compile Include="Providers\DateProviders\DateOffsetProvider.cs" />
+    <Compile Include="Models\ScheduleData.cs" />
+    <Compile Include="Providers\DateProviders\GroupedDateProvider.cs" />
+    <Compile Include="Providers\DateProviders\GroupedByMonthProvider.cs" />
+    <Compile Include="Providers\DateProviders\TakeNthOfGroupProvider.cs" />
+    <Compile Include="Providers\Layouts\UpcomingLayout.cs" />
+    <Compile Include="Providers\Layouts\UpcomingLayoutForms.cs" />
+    <Compile Include="Routes\CalendarApiRoutes.cs" />
+    <Compile Include="Routes\UpcomingLayoutRoutes.cs" />
+    <Compile Include="Routes\CalendarLayoutRoutes.cs" />
+    <Compile Include="ResourceManifests\CalendarLayoutResourceManifest.cs" />
+    <Compile Include="Migrations\ScheduleMigrations.cs" />
+    <Compile Include="Routes\ScheduleRoutes.cs" />
+    <Compile Include="Models\ExcludedDateRecord.cs" />
+    <Compile Include="Models\ScheduleOccurrence.cs" />
+    <Compile Include="Models\ScheduleSettingsPart.cs" />
+    <Compile Include="Providers\DateProviders\IntersectionProvider.cs" />
+    <Compile Include="Providers\DateProviders\DailyProvider.cs" />
+    <Compile Include="Providers\DateProviders\DayOfMonthProvider.cs" />
+    <Compile Include="Providers\DateProviders\DayOfWeekMonthProvider.cs" />
+    <Compile Include="Providers\DateProviders\DifferenceProvider.cs" />
+    <Compile Include="Providers\DateProviders\SchedulePartExtensions.cs" />
+    <Compile Include="Providers\Layouts\CalendarLayout.cs" />
+    <Compile Include="Providers\Layouts\CalendarLayoutForms.cs" />
+    <Compile Include="Providers\ProviderFactories\IDateProviderFactory.cs" />
+    <Compile Include="Services\IScheduleLayoutService.cs" />
+    <Compile Include="Services\ScheduleService.cs" />
+    <Compile Include="Models\SchedulePart.cs" />
+    <Compile Include="Models\SchedulePartRecord.cs" />
+    <Compile Include="Models\ScheduleType.cs" />
+    <Compile Include="Providers\DateProviders\CollectionProvider.cs" />
+    <Compile Include="Providers\DateProviders\DateProvider.cs" />
+    <Compile Include="Providers\DateProviders\DateRangeFilterProvider.cs" />
+    <Compile Include="Providers\DateProviders\EnumerableExtensions.cs" />
+    <Compile Include="Providers\DateProviders\FilterProvider.cs" />
+    <Compile Include="Providers\DateProviders\NullProvider.cs" />
+    <Compile Include="Providers\DateProviders\OccurenceProvider.cs" />
+    <Compile Include="Providers\ProviderFactories\TemplateProviderFactory.cs" />
+    <Compile Include="Providers\DateProviders\SingleDateProvider.cs" />
+    <Compile Include="Providers\DateProviders\UnionProvider.cs" />
+    <Compile Include="Providers\DateProviders\WeeklyProvider.cs" />
+    <Compile Include="Providers\DateProviders\YearlyProvider.cs" />
+    <Compile Include="ResourceManifests\ScheduleResourceManifest.cs" />
+    <Compile Include="Services\IScheduleService.cs" />
+    <Compile Include="Services\ScheduleLayoutService.cs" />
+    <Compile Include="Settings\ScheduleSettings.cs" />
+    <Compile Include="Settings\ScheduleSettingsEvents.cs" />
+    <Compile Include="ViewModels\EditScheduleSettingsViewModel.cs" />
+    <Compile Include="ViewModels\EditScheduleViewModel.cs" />
+    <Compile Include="ViewModels\ScheduleApiViewMode.cs" />
+    <Compile Include="ViewModels\ScheduleEditApiViewMode.cs" />
+    <Compile Include="ViewModels\SchedulesIndexApiViewMode.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\EditorTemplates\Parts\Schedule.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\Parts\Schedule.Summary.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Placement.info" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Scripts\schedule.min.js.map">
+      <DependentUpon>schedule.js</DependentUpon>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\Parts\Schedule.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\Parts\Schedule.SummaryAdmin.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Scripts\spectrum.min.js.map">
+      <DependentUpon>spectrum.js</DependentUpon>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\EditorTemplates\Parts\Schedule.SiteSettings.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\DefinitionTemplates\ScheduleSettings.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Scripts\schedule.bindings.min.js.map">
+      <DependentUpon>schedule.bindings.js</DependentUpon>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Scripts\schedule.extensions.min.js.map">
+      <DependentUpon>schedule.extensions.js</DependentUpon>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Scripts\jquery.datetimepicker.min.js.map">
+      <DependentUpon>jquery.datetimepicker.js</DependentUpon>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\Calendar.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\ColorSet.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\TagColorPicker.cshtml" />
+    <Content Include="Views\Upcoming.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\NakedUpcoming.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\ScheduleOccurrence.cshtml" />
+  </ItemGroup>
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(VSToolsPath)\WebApplications\Microsoft.WebApplication.targets" Condition="'$(VSToolsPath)' != ''" />
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets" Condition="false" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target> -->
+  <Target Name="AfterBuild" DependsOnTargets="AfterBuildCompiler">
+    <PropertyGroup>
+      <AreasManifestDir>$(ProjectDir)\..\Manifests</AreasManifestDir>
+    </PropertyGroup>
+    <!-- If this is an area child project, uncomment the following line:
+    <CreateAreaManifest AreaName="$(AssemblyName)" AreaType="Child" AreaPath="$(ProjectDir)" ManifestPath="$(AreasManifestDir)" ContentFiles="@(Content)" />
+    -->
+    <!-- If this is an area parent project, uncomment the following lines:
+    <CreateAreaManifest AreaName="$(AssemblyName)" AreaType="Parent" AreaPath="$(ProjectDir)" ManifestPath="$(AreasManifestDir)" ContentFiles="@(Content)" />
+    <CopyAreaManifests ManifestPath="$(AreasManifestDir)" CrossCopy="false" RenameViews="true" />
+    -->
+  </Target>
+  <Target Name="AfterBuildCompiler" Condition="'$(MvcBuildViews)'=='true'">
+    <AspNetCompiler VirtualPath="temp" PhysicalPath="$(ProjectDir)\..\$(ProjectName)" />
+  </Target>
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <UseIIS>False</UseIIS>
+          <AutoAssignPort>True</AutoAssignPort>
+          <DevelopmentServerPort>45979</DevelopmentServerPort>
+          <DevelopmentServerVPath>/</DevelopmentServerVPath>
+          <IISUrl>
+          </IISUrl>
+          <NTLMAuthentication>False</NTLMAuthentication>
+          <UseCustomServer>True</UseCustomServer>
+          <CustomServerUrl>http://orchard.codeplex.com</CustomServerUrl>
+          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

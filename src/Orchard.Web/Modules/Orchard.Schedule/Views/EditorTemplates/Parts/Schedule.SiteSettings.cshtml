@@ -1,0 +1,60 @@
+﻿@model Orchard.Schedule.ViewModels.EditScheduleSettingsViewModel
+            
+@{
+    Style.Require("jQuery.DateTimePicker");
+    
+    Script.Require("jQuery").AtFoot();
+    Script.Require("jQuery.DateTimePicker").AtFoot();
+
+    var startTimeId = Html.FieldIdFor(m => m.StartTime);
+    var durationId = Html.FieldIdFor(m => m.Duration);
+}
+
+<fieldset>
+    <legend>@T("Schedule Defaults")</legend>
+    <div>
+        <label for="@Html.FieldIdFor(m => m.StartTime)">@T("Default starting time for new schedules")</label>
+        @Html.EditorFor(m => m.StartTime)
+    </div>
+    <div>
+        <label for="@Html.FieldIdFor(m => m.Duration)">@T("Default duration for new schedules")</label>
+        @Html.EditorFor(m => m.Duration)
+    </div>
+    @*<div>
+        <label for="@Html.FieldIdFor(m => m.TimeZone)">@T("Time Zone for schedule times")</label>
+        @Html.DropDownListFor(m => m.TimeZone, Model.TimeZones)
+    </div>*@
+</fieldset>
+<fieldset>
+    <legend>@T("Date Format")</legend>
+    <div>
+
+        @Html.RadioButtonFor(m => m.DateFormat, "MDY", new {id = "formatMonthDateYear"})
+        <label class="forcheckbox" for="formatMonthDayYear">@T("Use M/D/Y date format")</label>
+    </div>
+    <div>
+        @Html.RadioButtonFor(m => m.DateFormat, "DMY", new {id = "formatDayMonthYear"})
+        <label class="forcheckbox" for="formatDayMonthYear">@T("Use D/M/Y date format")</label>
+    </div>
+    <div>
+        @Html.RadioButtonFor(m => m.DateFormat, "YMD", new {id = "formatYearMonthDay"})
+        <label class="forcheckbox" for="formatYearMonthDay">@T("Use Y/M/D date format")</label>
+    </div>
+</fieldset>
+
+@using (Script.Foot()) {
+    <script type="text/javascript">
+        $('#@startTimeId').datetimepicker({
+            datepicker: false,
+            format: 'g:i A',
+            formatTime: 'g:i A',
+            step: 15
+        });
+        $('#@durationId').datetimepicker({
+            datepicker: false,
+            format: 'H:i',
+            formatTime: 'H:i',
+            step: 15
+        });
+    </script>
+}

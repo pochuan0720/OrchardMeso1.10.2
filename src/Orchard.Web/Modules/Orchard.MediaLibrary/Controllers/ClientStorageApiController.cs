@@ -86,7 +86,7 @@ namespace Orchard.MediaLibrary.Controllers {
             var viewModel = new MediaManagerMediaItemsApiViewModel
             {
                 FolderPath = inModel.FolderPath,
-                MediaItems = mediaParts.ToList<MediaPart>(),
+                Data = mediaParts.ToList<MediaPart>(),
                 Pager = pager
             };
 

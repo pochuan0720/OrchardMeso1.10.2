@@ -1,0 +1,18 @@
+﻿Name: Recurring Schedule
+AntiForgery: enabled
+Author: Titus Anderson (flew2bits)
+Website: http://flew2bits.com/recurring-schedule-usage
+Version: 0.9.0
+OrchardVersion: 1.9
+Description: This module provides a content part to support recurring events. It also adds two query layouts, calendar and upcoming events. The calendar layout makes use of jQuery FullCalendar to display a calendar of all events that match the query. The upcoming events layout can be configured to show any number of upcoming events. This version adds the option to select the date format in the global schedule settings.
+Features:
+	Orchard.Schedule:
+		Name: Recurring Schedule
+		Description: Provides a schedule part to add a single or recurring event to a content type.
+		Category: Calendar
+		Dependencies: Orchard.jQuery, Orchard.Knockout
+	Orchard.CalendarLayout:
+		Name: Calendar Layout
+		Description: Provides calendar layout for projections with schedule parts
+		Category: Calendar
+		Dependencies: Orchard.jQuery, Orchard.Schedule, Orchard.Projections, Orchard.Autoroute, Orchard.Forms
