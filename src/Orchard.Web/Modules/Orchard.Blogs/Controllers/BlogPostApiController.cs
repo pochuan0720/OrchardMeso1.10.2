@@ -11,6 +11,7 @@ using Orchard.Blogs.Services;
 using Orchard.Blogs.ViewModels;
 using Orchard.ContentManagement;
 using Orchard.ContentManagement.Aspects;
+using Orchard.Core.Common.Handlers;
 using Orchard.Core.Common.ViewModels;
 using Orchard.Core.Contents.Settings;
 using Orchard.Localization;
@@ -30,11 +31,13 @@ namespace Orchard.Blogs.Controllers {
         private readonly IBlogService _blogService;
         private readonly IBlogPostService _blogPostService;
         private readonly ISiteService _siteService;
+        private readonly IUpdateModelHandler _updateModelHandler;
 
-        public BlogPostApiController(IOrchardServices services, IBlogService blogService, IBlogPostService blogPostService, ISiteService siteService) {
+        public BlogPostApiController(IOrchardServices services, IBlogService blogService, IBlogPostService blogPostService, ISiteService siteService, IUpdateModelHandler updateModelHandler) {
             Services = services;
             _blogService = blogService;
             _blogPostService = blogPostService;
+            _updateModelHandler = updateModelHandler;
             _siteService = siteService;
             T = NullLocalizer.Instance;
         }
@@ -57,7 +60,7 @@ namespace Orchard.Blogs.Controllers {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't create blog post" });
 
             Services.ContentManager.Create(blogPost, VersionOptions.Draft);
-            var model = Services.ContentManager.UpdateEditor(blogPost, new UpdateModelHandler(inModel));
+            var model = Services.ContentManager.UpdateEditor(blogPost, _updateModelHandler.SetData(inModel));
 
             /*if (!ModelState.IsValid)
             {
@@ -127,7 +130,7 @@ namespace Orchard.Blogs.Controllers {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't edit blog post" });
 
             // Validate form input
-            var model = Services.ContentManager.UpdateEditor(blogPost, new UpdateModelHandler(inModel));
+            var model = Services.ContentManager.UpdateEditor(blogPost, _updateModelHandler.SetData(inModel));
 
             conditionallyPublish(blogPost.ContentItem);
 
@@ -158,13 +161,18 @@ namespace Orchard.Blogs.Controllers {
             return Ok(new ResultViewModel { Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-        private IHttpActionResult query(int blogId, int id)
+        [HttpPost]
+        public IHttpActionResult find(BlogPostsIndexApiViewModel inModel)
         {
-            var blog = _blogService.Get(blogId, VersionOptions.Latest);
+            if (inModel == null || inModel.Id == null || inModel.BlogId == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+
+
+            var blog = _blogService.Get((int)inModel.BlogId, VersionOptions.Latest);
             if (blog == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
-            var blogpost = _blogPostService.Get(id);
+            var blogpost = _blogPostService.Get((int)inModel.Id);
             if (blogpost == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
@@ -174,12 +182,10 @@ namespace Orchard.Blogs.Controllers {
         [HttpPost]
         public IHttpActionResult query(BlogPostsIndexApiViewModel inModel)
         {
-            if (inModel != null && inModel.BlogId != null  && inModel.Id != null)
-                return query((int)inModel.BlogId, (int)inModel.Id);
 
             Pager pager = null;
 
-            if(inModel.BlogId == null)
+            if(inModel == null || inModel.BlogId == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 
             BlogPart blogPart = _blogService.Get((int)inModel.BlogId, VersionOptions.Latest).As<BlogPart>();

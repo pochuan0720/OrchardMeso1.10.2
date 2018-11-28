@@ -38,9 +38,6 @@ namespace Orchard.Roles.Controllers {
         [HttpPost]
         public IHttpActionResult query(RoleEditApiViewModel inModel)
         {
-            if (inModel != null && (inModel.Id != null || !string.IsNullOrEmpty(inModel.Name)))
-                return query(inModel.Id, inModel.Name);
-
 
             if (!Services.Authorizer.Authorize(Permissions.ManageRoles, T("Not authorized to manage roles")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
@@ -49,16 +46,20 @@ namespace Orchard.Roles.Controllers {
             return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-        private IHttpActionResult query(int? id, string name)
+        
+        public IHttpActionResult find(RoleEditApiViewModel inModel)
         {
+            if (inModel == null || (inModel.Id == null && string.IsNullOrEmpty(inModel.Name)))
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+
             if (!Services.Authorizer.Authorize(Permissions.ManageRoles, T("Not authorized to manage roles")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage roles" });
 
             RoleRecord model = null;
-            if(id != null)
-                model = _roleService.GetRole((int)id);
-            else if(!string.IsNullOrEmpty(name))
-                model = _roleService.GetRoleByName(name);
+            if(inModel.Id != null)
+                model = _roleService.GetRole((int)inModel.Id);
+            else if(!string.IsNullOrEmpty(inModel.Name))
+                model = _roleService.GetRoleByName(inModel.Name);
             else
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 

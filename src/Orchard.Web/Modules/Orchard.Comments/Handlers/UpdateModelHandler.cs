@@ -5,16 +5,16 @@ using Orchard.Core.Common.Models;
 using Orchard.Core.Common.ViewModels;
 using Orchard.Core.Title.Models;
 using Orchard.Localization;
+using Orchard.Localization.Services;
 using System;
 using System.Xml;
 
 namespace Orchard.Comments.Handlers
 {
-    public class UpdateModelHandler : Orchard.Core.Common.Handlers.UpdateModelHandler, IUpdateModel
+    public class UpdateModelHandler : Orchard.Core.Common.Handlers.UpdateModelHandler
     {
-        public UpdateModelHandler(object _field) : base(_field)
+        public UpdateModelHandler(IDateLocalizationServices dateLocalizationServices) : base(dateLocalizationServices)
         {
-
         }
 
         public new bool TryUpdateModel<TModel>(TModel model, string prefix, string[] includeProperties, string[] excludeProperties) where TModel : class
@@ -25,9 +25,9 @@ namespace Orchard.Comments.Handlers
                 {
                     dynamic _model = model;
 
-                    _model.CommentText = fields.GetValue("CommentText").ToString();
-                    _model.CommentedOn = (int)fields.GetValue("CommentedOn");
-                    _model.RepliedOn = (int)fields.GetValue("RepliedOn");
+                    _model.CommentText = root["CommentText"].ToString();
+                    _model.CommentedOn = (int)root["CommentedOn"];
+                    _model.RepliedOn = (int)root["RepliedOn"];
                     return true;
                 }
                 else

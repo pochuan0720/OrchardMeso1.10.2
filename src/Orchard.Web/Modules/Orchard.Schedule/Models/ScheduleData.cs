@@ -13,6 +13,8 @@ namespace Orchard.Schedule.Models {
     public class ScheduleData {
         private readonly ISlugService _slugService;
 
+        public ScheduleData() { }
+
         public ScheduleData(ContentItem content, UrlHelper url, ISlugService slugService, IOrchardServices orchard) {
             _slugService = slugService;
 

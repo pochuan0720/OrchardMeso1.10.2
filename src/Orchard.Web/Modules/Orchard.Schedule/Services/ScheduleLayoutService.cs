@@ -11,6 +11,8 @@ using Orchard;
 using Orchard.Core.Common.Handlers;
 using Orchard.Core.Common.Models;
 using Orchard.Projections.Models;
+using Orchard.Core.Containers.Services;
+using Orchard.Core.Containers.Models;
 
 namespace Orchard.Schedule.Services {
 
@@ -21,9 +23,11 @@ namespace Orchard.Schedule.Services {
 
         private readonly IOrchardServices _services;
         private readonly IProjectionManager _projectionManager;
-
-        public ScheduleLayoutService(IOrchardServices services, IProjectionManager projectionManager) {
+        private readonly IContainerService _containerService;
+        
+        public ScheduleLayoutService(IOrchardServices services, IContainerService containerService, IProjectionManager projectionManager) {
             _services = services;
+            _containerService = containerService;
             _projectionManager = projectionManager;
         }
 
@@ -49,6 +53,35 @@ namespace Orchard.Schedule.Services {
 
         public ScheduleApiViewMode GetOccurrenceViewModel(ScheduleOccurrence scheduleEvent, ScheduleData scheduleData)
         {
+            var model = _services.ContentManager.BuildEditor(scheduleEvent.Source);
+            int[] Ids = new int[0];
+            IList<string> selectedItemContentTypes = new List<string>();
+
+            ContainerPart containerPart = scheduleEvent.Source.As<ContainerPart>();
+            if (containerPart != null)
+            {
+                foreach (var item in model.Content.Items)
+                {
+                    if (item.TemplateName != null)
+                    {
+                        if (item.TemplateName.Equals("Parts.Common.Container"))
+                        {
+                            int itemCount = containerPart.ItemCount;
+                            if (itemCount > 0)
+                            {
+                                int containerId = item.ContentItem.Id;
+                                Ids = _containerService.GetContentItemsQuery(containerId).List().Select(x => x.ContentItem.Id).ToArray();
+                            }
+                        }
+                        else if (item.TemplateName.Equals("Container"))
+                        {
+                            selectedItemContentTypes = item.Model.SelectedItemContentTypes;
+                        }
+                    }
+                }
+            }
+
+
             return new ScheduleApiViewMode
             {
                 Id = scheduleData.Id,
@@ -56,7 +89,9 @@ namespace Orchard.Schedule.Services {
                 Body = scheduleData.Body,
                 StartDate = scheduleEvent.Start,
                 EndDate = scheduleEvent.End,
-                Data = UpdateModelHandler.GetData(_services.ContentManager.BuildEditor(scheduleEvent.Source))
+                Attendee = Ids,
+                Container = selectedItemContentTypes.ToArray<string>(),
+                Data = UpdateModelHandler.GetData(model)
             };
         }
 

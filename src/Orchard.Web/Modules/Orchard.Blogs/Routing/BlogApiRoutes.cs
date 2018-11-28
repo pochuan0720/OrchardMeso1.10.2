@@ -18,12 +18,6 @@ namespace Orchard.Blogs.Routing
                         Priority = 20,
                         RouteTemplate = "api/blogs/{action}",
                         Defaults = new  { area = "Orchard.Blogs", controller = "BlogApi"}
-                    },
-                   new HttpRouteDescriptor {
-                        Name = "BlogPostsApiRoute",
-                        Priority = 20,
-                        RouteTemplate = "api/blogposts/query",
-                        Defaults = new  { area = "Orchard.Blogs", controller = "BlogApi", action = "posts"}
                     }
             };
         }

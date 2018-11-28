@@ -8,6 +8,7 @@ namespace Orchard.Schedule.ViewModels
     public class ScheduleEditApiViewMode : ScheduleApiViewMode
     {
         public string ContentType { get; set; }
+        public string[] Container { get; set; }
 
     }
 }

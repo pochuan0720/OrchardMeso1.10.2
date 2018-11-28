@@ -278,7 +278,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orchard.Resources", "Orchar
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Meso.TokenAuth", "Orchard.Web\Modules\Meso.TokenAuth\Meso.TokenAuth.csproj", "{69773E39-5A88-44FF-BE30-C7E21D099C03}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "F2B.Orchard.Schedule", "Orchard.Web\Modules\F2B.Orchard.Schedule\F2B.Orchard.Schedule.csproj", "{399B3BDA-FD1B-4AF7-AAB9-A19C18723F5C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orchard.Schedule", "Orchard.Web\Modules\Orchard.Schedule\Orchard.Schedule.csproj", "{399B3BDA-FD1B-4AF7-AAB9-A19C18723F5C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

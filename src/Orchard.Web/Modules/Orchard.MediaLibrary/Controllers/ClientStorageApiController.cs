@@ -17,6 +17,10 @@ using System.Net;
 using System.Net.Http;
 using Orchard.UI.Navigation;
 using Orchard.Settings;
+using Newtonsoft.Json.Linq;
+using Orchard.UI.Notify;
+using Orchard.MediaLibrary.Handlers;
+using Orchard.Core.Common.Handlers;
 
 namespace Orchard.MediaLibrary.Controllers {
 
@@ -25,16 +29,19 @@ namespace Orchard.MediaLibrary.Controllers {
         private readonly IMediaLibraryService _mediaLibraryService;
         private readonly IMimeTypeProvider _mimeTypeProvider;
         private readonly ISiteService _siteService;
+        private readonly IUpdateModelHandler _updateModelHandler;
 
         public ClientStorageApiController(
             IMediaLibraryService mediaManagerService,
             IOrchardServices orchardServices,
             IMimeTypeProvider mimeTypeProvider,
-            ISiteService siteService) {
+            ISiteService siteService,
+            IUpdateModelHandler updateModelHandler) {
             _mediaLibraryService = mediaManagerService;
             _mimeTypeProvider = mimeTypeProvider;
             Services = orchardServices;
             _siteService = siteService;
+            _updateModelHandler = updateModelHandler;
             T = NullLocalizer.Instance;
             Logger = NullLogger.Instance;
         }
@@ -262,6 +269,42 @@ namespace Orchard.MediaLibrary.Controllers {
             }
 
         }
-            
+
+        [HttpPost]
+        public IHttpActionResult update(JObject inModel)
+        {
+            if (inModel == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+
+            var content = Services.ContentManager.Get((int)inModel["Id"], VersionOptions.DraftRequired);
+
+            if (content == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+            if (!Services.Authorizer.Authorize(Permissions.ManageOwnMedia, content, T("Couldn't edit schedule")))
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't edit schedule" });
+
+            Services.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(inModel));
+
+            Services.ContentManager.Publish(content);
+            Services.Notifier.Information(T("content information updated"));
+
+            return Ok(new ResultViewModel { Content = new { Id = content.Id }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+        }
+
+        [HttpPost]
+        public IHttpActionResult find(JObject inModel)
+        {
+            if (inModel == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+
+            var content = Services.ContentManager.Get((int)inModel["Id"], VersionOptions.DraftRequired);
+
+            if (content == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+            return Ok(new ResultViewModel { Content = content.As<MediaPart>(), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+        }
+
     }
 }

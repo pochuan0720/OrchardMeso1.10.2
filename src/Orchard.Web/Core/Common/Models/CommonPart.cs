@@ -38,6 +38,21 @@ namespace Orchard.Core.Common.Models {
             set { Store(x => x.ModifiedUtc, value); }
         }
 
+        public DateTime? CreatedLocal
+        {
+            get { return CreatedUtc == null ? CreatedUtc : ((DateTime)CreatedUtc).ToLocalTime(); }
+        }
+
+        public DateTime? PublishedLocal
+        {
+            get { return PublishedUtc == null ? PublishedUtc : ((DateTime)PublishedUtc).ToLocalTime(); }
+        }
+
+        public DateTime? ModifiedLocal
+        {
+            get { return ModifiedUtc == null ? ModifiedUtc : ((DateTime)ModifiedUtc).ToLocalTime(); }
+        }
+
         CommonPartVersionRecord PartVersionRecord {
             get {
                 var versionPart = this.As<ContentPart<CommonPartVersionRecord>>();

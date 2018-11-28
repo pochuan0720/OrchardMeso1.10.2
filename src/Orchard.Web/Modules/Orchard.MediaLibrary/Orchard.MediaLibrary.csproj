@@ -140,6 +140,7 @@
     <Compile Include="Extensions\MediaMetaDataExtensions.cs" />
     <Compile Include="Factories\VectorImageFactory.cs" />
     <Compile Include="Handlers\MediaLibrarySettingsPartHandler.cs" />
+    <Compile Include="Handlers\UpdateModelHandler.cs" />
     <Compile Include="Implementation\DefaultMediaUsername.cs" />
     <Compile Include="Models\MediaLibrarySettingsPart.cs" />
     <Compile Include="Models\VectorImagePart.cs" />

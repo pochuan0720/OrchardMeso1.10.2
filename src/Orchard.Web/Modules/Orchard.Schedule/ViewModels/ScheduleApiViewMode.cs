@@ -12,7 +12,8 @@ namespace Orchard.Schedule.ViewModels
         public string Body { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-
+        public int[] Attendee { get; set; }
+        public string[] Container { get; set; }
         public object Data { get; set; }
 
     }

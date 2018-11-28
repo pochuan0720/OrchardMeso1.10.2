@@ -29,6 +29,7 @@ namespace Orchard.Users.Controllers {
         private readonly IUserService _userService;
         private readonly IUserEventHandler _userEventHandlers;
         private readonly ISiteService _siteService;
+        private readonly IUpdateModelHandler _updateModelHandler;
 
         public AccountApiController(
             IOrchardServices services,
@@ -36,13 +37,14 @@ namespace Orchard.Users.Controllers {
             IUserService userService,
             IShapeFactory shapeFactory,
             IUserEventHandler userEventHandlers,
-            ISiteService siteService) {
+            ISiteService siteService,
+            IUpdateModelHandler updateModelHandler) {
             Services = services;
             _membershipService = membershipService;
             _userService = userService;
             _userEventHandlers = userEventHandlers;
             _siteService = siteService;
-
+            _updateModelHandler = updateModelHandler;
             T = NullLocalizer.Instance;
             Shape = shapeFactory;
         }
@@ -53,10 +55,6 @@ namespace Orchard.Users.Controllers {
 
         [HttpPost]
         public IHttpActionResult query(UsersIndexApiViewModel inModel) {
-            if (inModel != null && inModel.Id != null)
-            {
-                return query((int)inModel.Id);
-            }
 
             if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to list users")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to list users" });
@@ -122,12 +120,16 @@ namespace Orchard.Users.Controllers {
             return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-        private IHttpActionResult query(int id)
+        [HttpPost]
+        public IHttpActionResult find(UsersIndexApiViewModel inModel)
         {
+            if (inModel == null || inModel.Id == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+
             if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to manage users")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
 
-            var user = Services.ContentManager.Get<UserPart>(id);
+            var user = Services.ContentManager.Get<UserPart>((int)inModel.Id);
             UserEditApiViewModel outModel = null;
             if (user == null)
             {
@@ -140,38 +142,13 @@ namespace Orchard.Users.Controllers {
                 outModel.Email = user.Email;
                 var model = Services.ContentManager.BuildEditor(user);
 
-                /*JObject obj = new JObject();
 
                 foreach (var item in model.Content.Items)
                 {
-                    if (item.TemplateName.Equals("Fields/Input.Edit") || item.TemplateName.Equals("Fields/Enumeration.Edit"))
-                        obj.Add(new JProperty(item.Prefix, item.Model.Value));
-                    else if (item.TemplateName.Equals("Fields/Numeric.Edit"))
-                        if(string.IsNullOrEmpty(item.Model.Value))
-                            obj.Add(new JProperty(item.Prefix, ""));
-                        else
-                            obj.Add(new JProperty(item.Prefix, int.Parse(item.Model.Value)));
-                    else if (item.TemplateName.Equals("Fields/DateTime.Edit"))
-                        obj.Add(new JProperty(item.Prefix, item.ContentField.DateTime));
-                    else if (item.TemplateName.Equals("Fields/MediaLibraryPicker.Edit"))
-                        obj.Add(new JProperty(item.Prefix, item.Model.Field.Ids));
-                    else if (item.TemplateName.Equals("Fields/TaxonomyField"))
-                    {
-                        var viewModel = item.Model;
-                        var checkedTerms = new List<int>();
-                        foreach (var term in viewModel.Terms)
-                        {
-                            if (term.IsChecked)
-                                checkedTerms.Add(term.Id);
-                        }
-                        obj.Add(new JProperty(item.Prefix, checkedTerms.ToArray()));
-                    }
+                    if (item.TemplateName != null && item.TemplateName.Equals("Parts/Roles.UserRoles"))
+                        outModel.UserRoles = item.Model.UserRoles.Roles;
+                }
 
-                    else if (item.TemplateName.Equals("Parts/Roles.UserRoles"))
-                        obj.Add(new JProperty(item.Prefix, item.Model.UserRoles.Roles));
-                    else
-                        obj.Add(new JProperty(item.Prefix, item.TemplateName));
-                }*/
 
                 outModel.Data = UpdateModelHandler.GetData(model);
                 //var occurences = model.Content..SelectMany(part => part.Fields.OfType<TField>().Select(field => new { part, field }));
@@ -213,7 +190,7 @@ namespace Orchard.Users.Controllers {
 
             string previousName = user.UserName;
 
-            var model = Services.ContentManager.UpdateEditor(user, new UpdateModelHandler(inModel.Data));
+            var model = Services.ContentManager.UpdateEditor(user, _updateModelHandler.SetData(inModel));
 
             var editModel = new UserEditViewModel { User = user };
             if(!string.IsNullOrEmpty(inModel.UserName))
@@ -286,16 +263,19 @@ namespace Orchard.Users.Controllers {
         public IHttpActionResult self()
         {
             UserPart user = (UserPart)_membershipService.GetUser(User.Identity.Name);
-            UserProfileViewModel model = new UserProfileViewModel();
-            model.CreatedUtc = (DateTime)user.CreatedUtc;
-            model.UserName = user.UserName;
-            model.Email = user.Email;
-            XmlDocument doc = new XmlDocument();
-            if (user.ContentItem.VersionRecord.Data != null)
+
+            UserEditApiViewModel outModel = new UserEditApiViewModel();
+            outModel.UserName = user.UserName;
+            outModel.Email = user.Email;
+            var model = Services.ContentManager.BuildEditor(user);
+
+            foreach (var item in model.Content.Items)
             {
-                doc.LoadXml(user.ContentItem.VersionRecord.Data);
-                model.Data = doc.DocumentElement.FirstChild;
+                if (item.TemplateName != null && item.TemplateName.Equals("Parts/Roles.UserRoles"))
+                    outModel.UserRoles = item.Model.UserRoles.Roles;
             }
+
+            outModel.Data = UpdateModelHandler.GetData(model);
 
             return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
@@ -331,7 +311,7 @@ namespace Orchard.Users.Controllers {
                 }catch (Exception e) { };*/
                 //Services.ContentManager.BuildEditor(user);
                 
-                var model = Services.ContentManager.UpdateEditor(user, new UpdateModelHandler(inModel.Data));
+                var model = Services.ContentManager.UpdateEditor(user, _updateModelHandler.SetData(inModel));
                 return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
             }
             else

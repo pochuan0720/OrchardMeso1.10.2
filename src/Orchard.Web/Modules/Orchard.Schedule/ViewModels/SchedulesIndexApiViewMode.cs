@@ -8,6 +8,7 @@ namespace Orchard.Schedule.ViewModels
 {
     public class SchedulesIndexApiViewMode
     {
+        public int Id { get; set; }
         public QueryModel Query { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }

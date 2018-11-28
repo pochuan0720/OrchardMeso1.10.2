@@ -12,6 +12,7 @@ using Orchard.Blogs.ViewModels;
 using Orchard.Blogs.Handlers;
 using System.Net;
 using System.Web;
+using Orchard.Core.Common.Handlers;
 
 namespace Orchard.Blogs.Controllers {
 
@@ -21,6 +22,7 @@ namespace Orchard.Blogs.Controllers {
         private readonly IBlogPostService _blogPostService;
         private readonly IContentManager _contentManager;
         private readonly ITransactionManager _transactionManager;
+        private readonly IUpdateModelHandler _updateModelHandler;
 
         public BlogApiController(
             IOrchardServices services,
@@ -28,12 +30,14 @@ namespace Orchard.Blogs.Controllers {
             IBlogPostService blogPostService,
             IContentManager contentManager,
             ITransactionManager transactionManager,
-            IShapeFactory shapeFactory) {
+            IShapeFactory shapeFactory,
+            IUpdateModelHandler updateModelHandler) {
             Services = services;
             _blogService = blogService;
             _blogPostService = blogPostService;
             _contentManager = contentManager;
             _transactionManager = transactionManager;
+            _updateModelHandler = updateModelHandler;
             T = NullLocalizer.Instance;
             Shape = shapeFactory;
         }
@@ -52,16 +56,20 @@ namespace Orchard.Blogs.Controllers {
             BlogPart blog = Services.ContentManager.New<BlogPart>("Blog");
 
             _contentManager.Create(blog, VersionOptions.Draft);
-            _contentManager.UpdateEditor(blog, new UpdateModelHandler(inModel));
+            _contentManager.UpdateEditor(blog, _updateModelHandler.SetData(inModel));
 
             _contentManager.Publish(blog.ContentItem);
 
             return Ok(new ResultViewModel { Content = blog, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-        private IHttpActionResult query(int id) {
+        [HttpPost]
+        public IHttpActionResult find(BlogsIndexApiViewModel inModel) {
 
-            BlogPart blog = _blogService.Get(id, VersionOptions.Latest).As<BlogPart>();
+            if(inModel == null || inModel.Id == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+
+            BlogPart blog = _blogService.Get((int)inModel.Id, VersionOptions.Latest).As<BlogPart>();
 
             if (!Services.Authorizer.Authorize(Permissions.ManageBlogs, blog, T("Not allowed to edit blog")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not allowed to edit blog" });
@@ -106,7 +114,7 @@ namespace Orchard.Blogs.Controllers {
             if (!Services.Authorizer.Authorize(Permissions.ManageBlogs, blog, T("Couldn't edit blog")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't edit blog" });
 
-             Services.ContentManager.UpdateEditor(blog, new UpdateModelHandler(inModel));
+             Services.ContentManager.UpdateEditor(blog, _updateModelHandler.SetData(inModel));
 
             _contentManager.Publish(blog);
             Services.Notifier.Information(T("Blog information updated"));
@@ -116,8 +124,6 @@ namespace Orchard.Blogs.Controllers {
 
         [HttpPost]
         public IHttpActionResult query(BlogsIndexApiViewModel inModel) {
-            if (inModel != null && inModel.Id != null)
-                return query((int)inModel.Id);
 
             var list = Services.New.List();
             list.AddRange(_blogService.Get(VersionOptions.Latest)

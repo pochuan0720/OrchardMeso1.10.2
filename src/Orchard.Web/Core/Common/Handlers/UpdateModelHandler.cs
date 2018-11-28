@@ -1,9 +1,14 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Orchard.ContentManagement;
+using Orchard.Core.Common.Models;
+using Orchard.Core.Common.OwnerEditor;
 using Orchard.Core.Common.ViewModels;
+using Orchard.Core.Containers.ViewModels;
 using Orchard.Core.Title.Models;
 using Orchard.Localization;
+using Orchard.Localization.Models;
+using Orchard.Localization.Services;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -12,22 +17,25 @@ using System.Xml;
 
 namespace Orchard.Core.Common.Handlers
 {
-    public class UpdateModelHandler : IUpdateModel
+    public class UpdateModelHandler : IUpdateModelHandler
     {
-        protected JObject fields = null;
+        protected JObject root = null;
+        protected JToken fields = null;
+        protected readonly IDateLocalizationServices _dateLocalizationServices;
 
-        public UpdateModelHandler()
+        public UpdateModelHandler(IDateLocalizationServices dateLocalizationServices)
         {
+            _dateLocalizationServices = dateLocalizationServices;
         }
 
-            public UpdateModelHandler(object _fields)
+        public IUpdateModelHandler SetData(object _root)
         {
-            if (_fields != null)
+            if (_root != null)
             {
-                fields = JObject.FromObject(_fields);
+                root = JObject.FromObject(_root);
+                fields = root["Data"];
             }
-
-
+            return this;
         }
 
         public void AddModelError(string key, LocalizedString errorMessage)
@@ -37,75 +45,101 @@ namespace Orchard.Core.Common.Handlers
 
         public bool TryUpdateModel<TModel>(TModel model, string prefix, string[] includeProperties, string[] excludeProperties) where TModel : class
         {
+            dynamic _model = model;
+            string type = model.GetType().ToString();
             if (fields != null)
             {
-
-                //string path = "/Data";
-                string type = model.GetType().ToString();
-                dynamic _model = model;
-                if (type.Equals("Orchard.MediaLibrary.ViewModels.MediaLibraryPickerFieldViewModel"))
+                if (type.Equals("Orchard.MediaLibrary.ViewModels.MediaLibraryPickerFieldViewModel") && fields[prefix] != null)
                 {
-                    _model.SelectedIds = string.Join(",", fields.GetValue(prefix));
+                    _model.SelectedIds = string.Join(",", fields[prefix]);
+                    return true;
                 }
-                else if (type.Equals("Orchard.Fields.Fields.InputField") ||
-                    type.Equals("Orchard.Fields.Fields.EnumerationField") ||
-                    type.Equals("Orchard.Fields.ViewModels.NumericFieldViewModel"))
+                else if ((type.Equals("Orchard.Fields.Fields.InputField") ||
+                    type.Equals("Orchard.Fields.ViewModels.NumericFieldViewModel")) && fields[prefix] != null)
                 {
-                    _model.Value = fields.GetValue(prefix).ToString();
+                    _model.Value = fields[prefix].ToString();
+                    return true;
                 }
-                else if (type.Equals("Orchard.Fields.ViewModels.DateTimeFieldViewModel"))
+                else if (type.Equals("Orchard.Fields.Fields.EnumerationField") && fields[prefix] != null)
                 {
-                    DateTime dt = (DateTime)fields.GetValue(prefix);
-                    string date = dt.Date.ToString("MM/dd/yyyy");
-                    string time = dt.Date.ToString("h:mm", new CultureInfo("en-US"));
-                    _model.Editor = new DateTimeEditor() {
+                    var node = fields[prefix];
+                    _model.Value = node.ToString();
+                    return true;
+                }
+                else if (type.Equals("Orchard.Fields.ViewModels.DateTimeFieldViewModel") && fields[prefix] != null)
+                {
+                    DateTime dt = (DateTime)fields[prefix];
+                    string date = _dateLocalizationServices.ConvertToLocalizedDateString(dt, new DateLocalizationOptions() { EnableTimeZoneConversion = false });// dt.Date.ToString("MM/dd/yyyy");
+                    string time = _dateLocalizationServices.ConvertToLocalizedTimeString(dt, new DateLocalizationOptions() { EnableTimeZoneConversion = false });// dt.Date.ToString("h:mm", new CultureInfo("en-US"));
+                    _model.Editor = new DateTimeEditor()
+                    {
                         Date = date,
                         Time = time,
                     };
-                }
-                else if (type.Equals("Orchard.Taxonomies.ViewModels.TaxonomyFieldViewModel"))
-                {
-                    _model.Terms = CreateEntryList(prefix, "Orchard.Taxonomies.ViewModels.TermEntry, Orchard.Taxonomies");
-                }
-                else if (type.Equals("Orchard.Roles.ViewModels.UserRolesViewModel"))
-                {
-                    _model.Roles = CreateEntryList(prefix, "Orchard.Roles.ViewModels.UserRoleEntry, Orchard.Roles");
-                }
-                else if (typeof(TextFieldDriverViewModel) == model.GetType())
-                {
-                    //path = path  + "/ " + prefix.Replace(".", "/");
-
-                    //var viewModel = model as TextFieldDriverViewModel;
-                    _model.Text = fields.GetValue(prefix).ToString();
                     return true;
                 }
-                else if (typeof(TitlePart) == model.GetType())
+                else if (type.Equals("Orchard.Taxonomies.ViewModels.TaxonomyFieldViewModel") && fields[prefix] != null)
                 {
-                    //var part = model as TitlePart;
-                    _model.Title = fields.GetValue("Title").ToString();//fields.SelectSingleNode("/Data/Title").InnerText;
+                    _model.Terms = CreateEntryList(fields, prefix, "Orchard.Taxonomies.ViewModels.TermEntry, Orchard.Taxonomies");
+                    return true;
                 }
-                else if (typeof(BodyEditorViewModel) == model.GetType())
+                else if (typeof(TextFieldDriverViewModel) == model.GetType() && fields[prefix] != null)
                 {
-                    //var viewModel = model as BodyEditorViewModel;
-                    _model.Text = fields.GetValue("Text").ToString(); //fields.SelectSingleNode(path + "/Text").InnerText;
+                    _model.Text = fields[prefix].ToString();
+                    return true;
                 }
-                else
-                    return false;
             }
-            else
-                return false;
 
-            return true;
+            if (root != null)
+            {
+                if (typeof(TitlePart) == model.GetType() && root[prefix] != null)
+                {
+                    _model.Title = root[prefix].ToString();
+                    return true;
+                }
+                else if (typeof(BodyEditorViewModel) == model.GetType() && root[prefix] != null )
+                {
+                    _model.Text = root[prefix].ToString();
+                    return true;
+                }
+                else if (typeof(ContainerEditorViewModel) == model.GetType() && root["ContainerId"] != null)
+                {
+                    _model.ContainerId = (int)root["ContainerId"];
+                    return true;
+                }
+                else if (typeof(ContainerViewModel) == model.GetType() && root[prefix] != null)
+                {
+                    _model.SelectedItemContentTypes = root[prefix].ToObject<List<string>>();
+                    return true;
+                }
+                else if (typeof(OwnerEditorViewModel) == model.GetType() && root[prefix] != null)
+                {
+                    _model.Owner = root["Owner"].ToString();
+                    return true;
+                }
+                else if (typeof(OwnerEditorViewModel) == model.GetType() && root[prefix] != null)
+                {
+                    _model.Owner = root["Owner"].ToString();
+                    return true;
+                }
+                else if (type.Equals("Orchard.Roles.ViewModels.UserRolesViewModel") && root[prefix] != null)
+                {
+                    _model.Roles = CreateEntryList(root, prefix, "Orchard.Roles.ViewModels.UserRoleEntry, Orchard.Roles");
+                    return true;
+                }
+            }
+
+            return false;
         }
 
-        private dynamic CreateEntryList(string prefix, string typeName)
+        private dynamic CreateEntryList(JToken data, string prefix, string typeName)
         {
             Type elementType = Type.GetType(typeName, true);
             Type listType = typeof(List<>).MakeGenericType(new Type[] { elementType });
             dynamic checkeds = Activator.CreateInstance(listType);
 
             //IList<> checkedTerms = new List<>();
-            foreach (var value in fields.GetValue(prefix))
+            foreach (var value in data[prefix])
             {
                 dynamic entry = Activator.CreateInstance(elementType);
 
@@ -128,7 +162,8 @@ namespace Orchard.Core.Common.Handlers
             return checkeds;
         }
 
-        static public JObject GetData(dynamic model)
+
+        static public JObject GetData( dynamic model)
         {
             JObject obj = new JObject();
 
@@ -136,8 +171,20 @@ namespace Orchard.Core.Common.Handlers
             {
                 if (item.TemplateName != null)
                 {
-                    if (item.TemplateName.Equals("Fields/Input.Edit") || item.TemplateName.Equals("Fields/Enumeration.Edit"))
+                    if (item.TemplateName.Equals("Fields/Input.Edit"))
                         obj.Add(new JProperty(item.Prefix, item.Model.Value));
+                    else if (item.TemplateName.Equals("Fields/Enumeration.Edit"))
+                    {
+                        string value = item.Model.Value;
+                        if (!string.IsNullOrEmpty(value) && (value.StartsWith(";") || value.EndsWith(";")))
+                        {
+                            string[] values = value.Split(';');
+                            values = values.Where(x => !string.IsNullOrEmpty(x)).ToArray();
+                            item.Model.Value = string.Join(";", values);
+
+                        }
+                        obj.Add(new JProperty(item.Prefix, item.Model.Value));
+                    }
                     else if (item.TemplateName.Equals("Fields/Numeric.Edit"))
                         if (string.IsNullOrEmpty(item.Model.Value))
                             obj.Add(new JProperty(item.Prefix, ""));
@@ -158,11 +205,8 @@ namespace Orchard.Core.Common.Handlers
                         }
                         obj.Add(new JProperty(item.Prefix, checkedTerms.ToArray()));
                     }
-
-                    else if (item.TemplateName.Equals("Parts/Roles.UserRoles"))
-                        obj.Add(new JProperty(item.Prefix, item.Model.UserRoles.Roles));
-                    else
-                        obj.Add(new JProperty(item.Prefix, item.TemplateName));
+                    //else
+                    //    obj.Add(new JProperty(item.Prefix, item.TemplateName));
                 }
             }
 

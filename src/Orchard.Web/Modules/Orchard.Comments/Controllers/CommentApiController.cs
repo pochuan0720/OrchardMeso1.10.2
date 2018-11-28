@@ -12,6 +12,7 @@ using Orchard.Comments.Services;
 
 namespace Orchard.Comments.Controllers {
     using Orchard.Comments.Handlers;
+    using Orchard.Core.Common.Handlers;
     using Orchard.Core.Common.ViewModels;
     using Orchard.Settings;
     using System.Net;
@@ -23,16 +24,19 @@ namespace Orchard.Comments.Controllers {
         private readonly ICommentService _commentService;
         private readonly ISiteService _siteService;
         private readonly IContentManager _contentManager;
+        private readonly IUpdateModelHandler _updateModelHandler;
 
         public CommentApiController(
             IOrchardServices orchardServices,
             ICommentService commentService,
             ISiteService siteService,
-            IShapeFactory shapeFactory) {
+            IShapeFactory shapeFactory,
+            IUpdateModelHandler updateModelHandler) {
             _orchardServices = orchardServices;
             _commentService = commentService;
             _siteService = siteService;
             _contentManager = _orchardServices.ContentManager;
+            _updateModelHandler = updateModelHandler;
             Logger = NullLogger.Instance;
             T = NullLocalizer.Instance;
             Shape = shapeFactory;
@@ -65,8 +69,8 @@ namespace Orchard.Comments.Controllers {
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            var entries = comments.List().Select(comment => comment.Record).ToList();
-            if(entries.Count==0)
+            var entries = comments.List();
+            if(entries.Count() == 0)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             return Ok(new ResultViewModel { Content = entries, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
@@ -79,7 +83,7 @@ namespace Orchard.Comments.Controllers {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't add comment" });
 
             var comment = _orchardServices.ContentManager.New<CommentPart>("Comment");
-            var editorShape = _orchardServices.ContentManager.UpdateEditor(comment, new UpdateModelHandler(inModel));
+            var editorShape = _orchardServices.ContentManager.UpdateEditor(comment, _updateModelHandler.SetData(inModel));
 
 
             if (ModelState.IsValid)
@@ -184,9 +188,21 @@ namespace Orchard.Comments.Controllers {
             if(commentPart == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
-            var editorShape = _contentManager.UpdateEditor(commentPart, new UpdateModelHandler(inModel));
+            var editorShape = _contentManager.UpdateEditor(commentPart, _updateModelHandler.SetData(inModel));
 
             return Ok(new ResultViewModel { Content = commentPart, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+        }
+
+        [HttpPost]
+        public IHttpActionResult find(CommentEditApiViewModel inModel)
+        {
+
+            var commentPart = _contentManager.Get<CommentPart>(inModel.Id);
+
+            if (commentPart == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+            return Ok(new ResultViewModel { Content = commentPart.As<CommentPart>(), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
         [HttpPost]

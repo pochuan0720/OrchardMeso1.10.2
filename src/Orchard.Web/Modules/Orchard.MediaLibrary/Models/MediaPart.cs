@@ -92,11 +92,16 @@ namespace Orchard.MediaLibrary.Models {
             set { this.As<InfosetPart>().Set<MediaPart>("LogicalType", value); }
         }
 
-        [JsonProperty]
         public DateTime? ModifiedUtc
         {
             get { return this.As<ICommonPart>().ModifiedUtc; }
             set { this.As<ICommonPart>().ModifiedUtc = value; }
+        }
+
+        [JsonProperty]
+        public DateTime? ModifiedLocal
+        {
+            get { return ModifiedUtc == null ? ModifiedUtc : ((DateTime)ModifiedUtc).ToLocalTime(); }
         }
     }
 }

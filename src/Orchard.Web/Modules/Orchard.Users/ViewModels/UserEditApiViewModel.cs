@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Orchard.ContentManagement;
 using Orchard.Users.Models;
@@ -12,6 +13,8 @@ namespace Orchard.Users.ViewModels {
 
         [Required]
         public string Email { get; set; }
+
+        public IList<string> UserRoles { get; set; }
 
         public object Data { get; set; }
     }
