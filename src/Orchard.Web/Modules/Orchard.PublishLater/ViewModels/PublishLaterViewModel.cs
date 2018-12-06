@@ -31,5 +31,8 @@ namespace Orchard.PublishLater.ViewModels {
         }
 
         public DateTimeEditor Editor { get; set; }
+
+        //Add by Meso Frank
+        public bool? IsPublishLater { get; set; }
     }
 }

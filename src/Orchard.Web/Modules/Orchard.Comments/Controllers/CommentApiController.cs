@@ -9,14 +9,14 @@ using Orchard.Logging;
 using Orchard.UI.Notify;
 using Orchard.Comments.ViewModels;
 using Orchard.Comments.Services;
+using Orchard.Settings;
+using Orchard.Comments.Handlers;
+using Orchard.Core.Common.ViewModels;
+using System.Net;
+using System.Web;
+using Newtonsoft.Json.Linq;
 
 namespace Orchard.Comments.Controllers {
-    using Orchard.Comments.Handlers;
-    using Orchard.Core.Common.Handlers;
-    using Orchard.Core.Common.ViewModels;
-    using Orchard.Settings;
-    using System.Net;
-    using System.Web;
 
     [Authorize]
     public class CommentApiController : ApiController {
@@ -46,7 +46,7 @@ namespace Orchard.Comments.Controllers {
         public Localizer T { get; set; }
         dynamic Shape { get; set; }
 
-        [HttpPost]
+        /*[HttpPost]
         public IHttpActionResult query(CommentsDetailsViewModel inModel) {
             // Default options
             CommentDetailsOptions options = inModel.Options;
@@ -74,7 +74,82 @@ namespace Orchard.Comments.Controllers {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             return Ok(new ResultViewModel { Content = entries, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+        }*/
+
+        [HttpPost]
+        public IHttpActionResult query(CommentsDetailsViewModel inModel)
+        {
+
+            var commentsPart = _orchardServices.ContentManager.Get(inModel.CommentedItemId).As<CommentsPart>();
+
+            if(commentsPart == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+
+            var model = _orchardServices.ContentManager.BuildDisplay(commentsPart);
+
+            object obj = null;
+            foreach (var item in model.Content.Items)
+            {
+                if (item.List != null)
+                {
+                    var List = item.List;
+                    int count = item.CommentCount;
+                    //object obj = printItems(new List<object>(), List);
+                    obj = printItems(List);
+                    break;// string name = item.TemplateName;
+                }
+            }
+
+
+            //outModel.Data = UpdateModelHandler.GetData(model);
+
+            return Ok(new ResultViewModel { Content = obj, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
+
+        private JObject printItems(dynamic parent)
+        {
+
+            JObject obj = new JObject();
+            if (parent.ContentPart != null)
+            {
+                JToken token = JToken.FromObject(parent.ContentPart);
+                obj.Add("Item", token);
+            }
+            //else
+            //    return parent.Items[0] == null ? null : printItems(parent.Items[0]);
+
+
+            JArray list = new JArray();
+            foreach (dynamic item in parent.Items)
+            {
+                JToken token = printItems(item);
+                list.Add(token);
+            }
+            obj.Add("Items", list);
+            return obj;
+
+        }
+
+        /*private object printItems(List<object> _list, dynamic parent)
+        {
+            if (parent.Items.Count == 0)
+            {
+                //_list.Add(parent.ContentPart);
+                return parent.ContentPart;// _list;
+            }
+            else
+            {
+                foreach (dynamic item in parent.Items)
+                {
+                    _list.Add(item.ContentPart);
+                    object result = printItems(new List<object>(), item);
+                    if(result is List<object>)
+                        _list.Add(result);
+                }
+                return _list;
+            }
+        }*/
 
         [HttpPost]
         public IHttpActionResult create(CommentEditApiViewModel inModel)

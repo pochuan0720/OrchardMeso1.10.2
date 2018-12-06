@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Orchard.Blogs.Models;
 using Orchard.ContentManagement;
+using Orchard.Core.Common.Handlers;
 using Orchard.Core.Common.Models;
 using Orchard.Core.Common.ViewModels;
 using Orchard.Core.Title.Models;
@@ -11,13 +12,13 @@ using System.Xml;
 
 namespace Orchard.Blogs.Handlers
 {
-    public class UpdateModelHandler : Orchard.Core.Common.Handlers.UpdateModelHandler
+    public class UpdateModelHandler : Orchard.Core.Common.Handlers.UpdateModelHandler, IUpdateModelHandler
     {
         public UpdateModelHandler(IDateLocalizationServices dateLocalizationServices) : base(dateLocalizationServices)
         {
         }
 
-        public new bool TryUpdateModel<TModel>(TModel model, string prefix, string[] includeProperties, string[] excludeProperties) where TModel : class
+        public override bool TryUpdateModel<TModel>(TModel model, string prefix, string[] includeProperties, string[] excludeProperties)
         {
             if (fields != null)
             {
@@ -40,6 +41,12 @@ namespace Orchard.Blogs.Handlers
             }
 
             return false;
+        }
+
+        IUpdateModelHandler IUpdateModelHandler.SetData(object _root)
+        {
+            base.SetData(_root);
+            return this;
         }
     }
 }

@@ -12,7 +12,7 @@ namespace Orchard.Blogs.ViewModels
         public int Id { get; set; }
         public string Title { get; set; }
         public string Text { get; set; }
-        public bool? Publish { get; set; }
+        public bool? IsPublished { get; set; }
         public object Data { get; set; }
     }
 }

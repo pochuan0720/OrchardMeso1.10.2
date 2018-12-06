@@ -63,12 +63,12 @@ namespace Orchard.Users.Models {
             get { return Retrieve(x => x.EmailStatus); }
             set { Store(x => x.EmailStatus, value); }
         }
-
+        [JsonProperty]
         public DateTime? CreatedUtc {
             get { return Retrieve(x => x.CreatedUtc); }
             set { Store(x => x.CreatedUtc, value); }
         }
-
+        [JsonProperty]
         public DateTime? LastLoginUtc {
             get { return Retrieve(x => x.LastLoginUtc); }
             set { Store(x => x.LastLoginUtc, value); }
@@ -79,7 +79,7 @@ namespace Orchard.Users.Models {
             set { Store(x => x.LastLogoutUtc, value); }
         }
 
-        [JsonProperty]
+        /*[JsonProperty]
         public DateTime? CreatedLocal
         {
             get { return CreatedUtc == null ? CreatedUtc : ((DateTime)CreatedUtc).ToLocalTime(); }
@@ -88,6 +88,6 @@ namespace Orchard.Users.Models {
         public DateTime? LastLoginLocal
         {
             get { return LastLoginUtc == null ? LastLoginUtc : ((DateTime)LastLoginUtc).ToLocalTime(); }
-        }
+        }*/
     }
 }

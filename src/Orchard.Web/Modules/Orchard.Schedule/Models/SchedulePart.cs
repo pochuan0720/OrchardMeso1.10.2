@@ -41,6 +41,12 @@ namespace Orchard.Schedule.Models
             set { Record.EndDate = value; }
         }
 
+        [JsonProperty]
+        public bool IsPublished
+        {
+            get { return ContentItem.VersionRecord != null && ContentItem.VersionRecord.Published; }
+        }
+
         public int? Occurrences
         {
             get { return Record.Occurrences; }

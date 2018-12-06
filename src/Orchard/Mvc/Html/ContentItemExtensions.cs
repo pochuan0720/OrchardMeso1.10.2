@@ -36,6 +36,8 @@ namespace Orchard.Mvc.Html {
         }
 
         public static MvcHtmlString ItemDisplayLink(this HtmlHelper html, string linkText, IContent content, object htmlAttributes = null) {
+            if (content == null)
+                return null;
             var metadata = content.ContentItem.ContentManager.GetItemMetadata(content);
             if (metadata.DisplayRouteValues == null)
                 return null;
@@ -48,6 +50,8 @@ namespace Orchard.Mvc.Html {
         }
 
         public static string ItemDisplayUrl(this UrlHelper urlHelper, IContent content) {
+            if (content == null)
+                return null;
             var metadata = content.ContentItem.ContentManager.GetItemMetadata(content);
             if (metadata.DisplayRouteValues == null)
                 return null;

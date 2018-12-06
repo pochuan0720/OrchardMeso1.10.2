@@ -1,23 +1,14 @@
-﻿using Newtonsoft.Json;
-using Orchard.Comments.Models;
-using Orchard.ContentManagement;
-using Orchard.Core.Common.Models;
-using Orchard.Core.Common.ViewModels;
-using Orchard.Core.Title.Models;
-using Orchard.Localization;
+﻿using Orchard.Comments.Models;
 using Orchard.Localization.Services;
-using System;
-using System.Xml;
-
 namespace Orchard.Comments.Handlers
 {
-    public class UpdateModelHandler : Orchard.Core.Common.Handlers.UpdateModelHandler
+    public class UpdateModelHandler : Orchard.Core.Common.Handlers.UpdateModelHandler, IUpdateModelHandler
     {
         public UpdateModelHandler(IDateLocalizationServices dateLocalizationServices) : base(dateLocalizationServices)
         {
         }
 
-        public new bool TryUpdateModel<TModel>(TModel model, string prefix, string[] includeProperties, string[] excludeProperties) where TModel : class
+        public override bool TryUpdateModel<TModel>(TModel model, string prefix, string[] includeProperties, string[] excludeProperties)
         {
             if (fields != null)
             {
@@ -37,6 +28,12 @@ namespace Orchard.Comments.Handlers
             }
 
             return false;
+        }
+
+        IUpdateModelHandler IUpdateModelHandler.SetData(object _root)
+        {
+            base.SetData(_root);
+            return this;
         }
     }
 }

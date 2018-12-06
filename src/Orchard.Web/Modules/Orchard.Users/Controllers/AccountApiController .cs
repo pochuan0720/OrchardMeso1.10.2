@@ -269,20 +269,24 @@ namespace Orchard.Users.Controllers {
             outModel.Email = user.Email;
             var model = Services.ContentManager.BuildEditor(user);
 
-            foreach (var item in model.Content.Items)
+            foreach(dynamic part in user.ContentItem.Parts)
             {
-                if (item.TemplateName != null && item.TemplateName.Equals("Parts/Roles.UserRoles"))
-                    outModel.UserRoles = item.Model.UserRoles.Roles;
+                var roles = part.Roles;
+                if(roles != null)
+                {
+                    outModel.UserRoles = roles;
+                    break;
+                }
             }
 
             outModel.Data = UpdateModelHandler.GetData(model);
 
-            return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+            return Ok(new ResultViewModel { Content = outModel, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
         [AllowAnonymous]
         [HttpPost]
-        public IHttpActionResult register(UserCreateViewModel inModel)
+        public IHttpActionResult register(UserCreateApiViewModel inModel)
         {
             if (inModel == null)
             {
@@ -319,7 +323,7 @@ namespace Orchard.Users.Controllers {
         }
 
         [HttpPost]
-        public IHttpActionResult create(UserCreateViewModel inModel)
+        public IHttpActionResult create(UserCreateApiViewModel inModel)
         {
             if (!Services.Authorizer.Authorize(Permissions.ManageUsers, T("Not authorized to manage users")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });

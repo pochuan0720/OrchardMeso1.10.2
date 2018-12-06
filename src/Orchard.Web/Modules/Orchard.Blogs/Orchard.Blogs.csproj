@@ -114,6 +114,7 @@
     <Compile Include="Drivers\RecentBlogPostsPartDriver.cs" />
     <Compile Include="Feeds\BlogPartFeedItemBuilder.cs" />
     <Compile Include="Handlers\BlogArchivesPartHandler.cs" />
+    <Compile Include="Handlers\IUpdateModelHandler.cs" />
     <Compile Include="Handlers\RecentBlogPostsPartHandler.cs" />
     <Compile Include="Handlers\UpdateModelHandler.cs" />
     <Compile Include="Models\BlogArchivesPart.cs" />

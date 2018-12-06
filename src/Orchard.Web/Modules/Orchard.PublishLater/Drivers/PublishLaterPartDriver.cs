@@ -87,7 +87,7 @@ namespace Orchard.PublishLater.Drivers {
 
             updater.TryUpdateModel(model, Prefix, null, null);
             var httpContext = _httpContextAccessor.Current();
-            if (httpContext.Request.Form["submit.Save"] == "submit.PublishLater") {
+            if (httpContext.Request.Form["submit.Save"] == "submit.PublishLater" || (model.IsPublishLater != null && (bool)model.IsPublishLater)) {
                 if (!String.IsNullOrWhiteSpace(model.Editor.Date) && !String.IsNullOrWhiteSpace(model.Editor.Time)) {
                     try {
                         var utcDateTime = _dateLocalizationServices.ConvertFromLocalizedString(model.Editor.Date, model.Editor.Time);
@@ -109,7 +109,7 @@ namespace Orchard.PublishLater.Drivers {
                 }
             }
 
-            if (httpContext.Request.Form["submit.Save"] == "submit.CancelPublishLaterTasks") {
+            if (httpContext.Request.Form["submit.Save"] == "submit.CancelPublishLaterTasks" || (model.IsPublishLater != null && !(bool)model.IsPublishLater)) {
                 _publishingTaskManager.DeleteTasks(model.ContentItem);
             }
             return ContentShape("Parts_PublishLater_Edit",

@@ -13,6 +13,7 @@ using Orchard.Core.Common.Models;
 using Orchard.Projections.Models;
 using Orchard.Core.Containers.Services;
 using Orchard.Core.Containers.Models;
+using Orchard.Security;
 
 namespace Orchard.Schedule.Services {
 
@@ -54,8 +55,18 @@ namespace Orchard.Schedule.Services {
         public ScheduleApiViewMode GetOccurrenceViewModel(ScheduleOccurrence scheduleEvent, ScheduleData scheduleData)
         {
             var model = _services.ContentManager.BuildEditor(scheduleEvent.Source);
-            int[] Ids = new int[0];
+            IList<object> list = new List<object>();
             IList<string> selectedItemContentTypes = new List<string>();
+            DateTime? publishLater = null;
+            foreach (dynamic part in scheduleEvent.Source.ContentItem.Parts)
+            {
+                if (part.ScheduledPublishUtc != null)
+                {
+                    publishLater = part.ScheduledPublishUtc.Value;
+                }
+
+            }
+
 
             ContainerPart containerPart = scheduleEvent.Source.As<ContainerPart>();
             if (containerPart != null)
@@ -69,8 +80,16 @@ namespace Orchard.Schedule.Services {
                             int itemCount = containerPart.ItemCount;
                             if (itemCount > 0)
                             {
-                                int containerId = item.ContentItem.Id;
-                                Ids = _containerService.GetContentItemsQuery(containerId).List().Select(x => x.ContentItem.Id).ToArray();
+                                var contentItems = _containerService.GetContentItems(containerPart.Id);
+
+                                foreach (ContentItem _item in contentItems)
+                                {
+                                    CommonPart common = _item.As<CommonPart>();
+                                    IUser user = common.Owner;
+                                    var userModel = _services.ContentManager.BuildEditor(user);
+                                    var attendeeModel = _services.ContentManager.BuildEditor(_item);
+                                    list.Add(new { Id = _item.Id, CreatedUtc = common.CreatedUtc, User = new { Id = user.Id, UserName = user.UserName, Email = user.Email, Data = Core.Common.Handlers.UpdateModelHandler.GetData(userModel) }, Data = Core.Common.Handlers.UpdateModelHandler.GetData(attendeeModel) });
+                                }
                             }
                         }
                         else if (item.TemplateName.Equals("Container"))
@@ -81,15 +100,18 @@ namespace Orchard.Schedule.Services {
                 }
             }
 
-
+            SchedulePart schedule = scheduleEvent.Source.As<SchedulePart>();
+            scheduleEvent.Source.As<SchedulePart>();
             return new ScheduleApiViewMode
             {
                 Id = scheduleData.Id,
                 Title = scheduleData.Title,
                 Body = scheduleData.Body,
-                StartDate = scheduleEvent.Start,
-                EndDate = scheduleEvent.End,
-                Attendee = Ids,
+                StartDate = TimeZoneInfo.ConvertTimeToUtc(scheduleEvent.Start, schedule.TimeZone),
+                EndDate = TimeZoneInfo.ConvertTimeToUtc(scheduleEvent.End, schedule.TimeZone),
+                IsPublished = schedule.IsPublished,
+                PublishLater = publishLater == null ? publishLater : (DateTime)publishLater,
+                Attendee = list.ToArray(),
                 Container = selectedItemContentTypes.ToArray<string>(),
                 Data = UpdateModelHandler.GetData(model)
             };

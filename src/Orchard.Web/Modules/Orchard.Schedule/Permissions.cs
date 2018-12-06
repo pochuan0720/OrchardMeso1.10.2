@@ -22,14 +22,14 @@ namespace Orchard.Schedule {
                     Name = "Administrator",
                     Permissions = new[] {ManageSchedules, AddSchedule}
                 },
-                new PermissionStereotype {
+                /*new PermissionStereotype {
                     Name = "Anonymous",
                     Permissions = new[] {ManageSchedules}
                 },
                 new PermissionStereotype {
                     Name = "Authenticated",
                     Permissions = new[] {ManageSchedules}
-                },
+                },*/
                 new PermissionStereotype {
                     Name = "Editor",
                     Permissions = new[] {ManageSchedules}

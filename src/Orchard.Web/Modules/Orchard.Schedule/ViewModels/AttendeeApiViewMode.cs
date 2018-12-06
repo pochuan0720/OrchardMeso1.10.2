@@ -6,10 +6,13 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Orchard.Schedule.ViewModels
 {
-    public class ScheduleEditApiViewMode : ScheduleApiViewMode
+    public class AttendeeApiViewMode
     {
+        public int Id { get; set; }
         [Required]
-        public string ContentType { get; set; }
+        public string ContainerId { get; set; }
+        public string Owner { get; set; }
+        public object Data { get; set; }
 
     }
 }

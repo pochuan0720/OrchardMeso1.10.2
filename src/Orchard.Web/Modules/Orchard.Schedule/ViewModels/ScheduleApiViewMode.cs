@@ -2,6 +2,7 @@
 using Orchard.UI.Navigation;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace Orchard.Schedule.ViewModels
 {
@@ -12,7 +13,10 @@ namespace Orchard.Schedule.ViewModels
         public string Body { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public int[] Attendee { get; set; }
+        public DateTime? PublishLater { get; set; }
+        public bool? IsPublished { get; set; }
+        public object[] Attendee { get; set; }
+        [Required]
         public string[] Container { get; set; }
         public object Data { get; set; }
 

@@ -11,7 +11,6 @@ using Orchard.Blogs.Services;
 using Orchard.Blogs.ViewModels;
 using Orchard.ContentManagement;
 using Orchard.ContentManagement.Aspects;
-using Orchard.Core.Common.Handlers;
 using Orchard.Core.Common.ViewModels;
 using Orchard.Core.Contents.Settings;
 using Orchard.Localization;
@@ -19,6 +18,7 @@ using Orchard.Mvc;
 using Orchard.Settings;
 using Orchard.UI.Navigation;
 using Orchard.UI.Notify;
+using UpdateModelHandler = Orchard.Blogs.Handlers.UpdateModelHandler;
 
 namespace Orchard.Blogs.Controllers {
 
@@ -84,7 +84,7 @@ namespace Orchard.Blogs.Controllers {
         [HttpPost]
         public IHttpActionResult update(BlogPostEditApiViewModel inModel)
         {
-            if (inModel.Publish != null && (bool)inModel.Publish)
+            if (inModel.IsPublished != null && (bool)inModel.IsPublished)
                 return EditAndPublishPOST(inModel.BlogId, inModel.Id, inModel);
             else
                 return EditPOST(inModel.BlogId, inModel.Id, inModel);
@@ -105,7 +105,7 @@ namespace Orchard.Blogs.Controllers {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             // Get draft (create a new version if needed)
-            var blogPost = _blogPostService.Get(postId, VersionOptions.DraftRequired);
+            var blogPost = _blogPostService.Get(postId);//, VersionOptions.DraftRequired);
             if (blogPost == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
@@ -122,7 +122,7 @@ namespace Orchard.Blogs.Controllers {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             // Get draft (create a new version if needed)
-            var blogPost = _blogPostService.Get(postId, VersionOptions.DraftRequired);
+            var blogPost = _blogPostService.Get(postId);//, VersionOptions.DraftRequired);
             if (blogPost == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
@@ -153,7 +153,7 @@ namespace Orchard.Blogs.Controllers {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             if (!Services.Authorizer.Authorize(Permissions.DeleteBlogPost, post, T("Couldn't delete blog post")))
-                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't delete blog post" });
 
             _blogPostService.Delete(post);
             Services.Notifier.Information(T("Blog post was successfully deleted"));
@@ -173,6 +173,7 @@ namespace Orchard.Blogs.Controllers {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             var blogpost = _blogPostService.Get((int)inModel.Id);
+
             if (blogpost == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 

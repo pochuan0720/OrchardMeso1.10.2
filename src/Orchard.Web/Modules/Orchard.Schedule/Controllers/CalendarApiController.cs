@@ -15,36 +15,43 @@ using Orchard.Logging;
 using Orchard.Localization;
 using Orchard.Schedule.Handlers;
 using Orchard.UI.Notify;
-using Newtonsoft.Json.Linq;
 using Orchard.Projections.Models;
-using Orchard.Core.Common.Handlers;
+using Orchard.Security;
+using Orchard.Roles.Services;
+using Orchard.Roles.Models;
 
 namespace Orchard.Schedule.Controllers
 {
     [Authorize]
     public class CalendarApiController : ApiController
     {
+        private readonly IRoleService _roleService;
         private readonly IScheduleService _scheduleService;
         private readonly IScheduleLayoutService _scheduleLayoutService;
         private readonly IOrchardServices _orchardServices;
         private readonly ISlugService _slugService;
         private readonly IUpdateModelHandler _updateModelHandler;
+        private readonly IAuthenticationService _authenticationService;
         private static DateTime UnixEpochTime = new DateTime(1970, 1, 1);
 
         public CalendarApiController(
+            IRoleService roleService,
             IScheduleService scheduleService,
             IScheduleLayoutService scheduleLayoutService,
             IOrchardServices orchardServices,
             ISlugService slugService,
             IShapeFactory shapeFactory,
-            IUpdateModelHandler updateModelHandler
+            IUpdateModelHandler updateModelHandler,
+            IAuthenticationService authenticationService
             )
         {
+            _roleService = roleService;
             _scheduleService = scheduleService;
             _scheduleLayoutService = scheduleLayoutService;
             _orchardServices = orchardServices;
             _slugService = slugService;
             _updateModelHandler = updateModelHandler;
+            _authenticationService = authenticationService;
             Logger = NullLogger.Instance;
             T = NullLocalizer.Instance;
             Shape = shapeFactory;
@@ -57,30 +64,52 @@ namespace Orchard.Schedule.Controllers
         [HttpPost]
         public IHttpActionResult query(SchedulesIndexApiViewMode inModel)
         {
-            if (inModel == null || inModel.Query == null)
+            if (inModel == null || inModel.ContentType == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 
-            IEnumerable<ContentItem> contentItems = _scheduleLayoutService.GetProjectionContentItems(inModel.Query);
+            IEnumerable<ContentItem> allContentItems = null;
+            string queryName = "";
+            IUser user = _authenticationService.GetAuthenticatedUser();
+            UserRolesPart rolesPart = user.As<UserRolesPart>();
+
+            if (rolesPart != null)
+            {
+                IEnumerable<string> userRoles = rolesPart.Roles;
+                foreach (var role in userRoles)
+                {
+                    foreach (var permissionName in _roleService.GetPermissionsForRoleByName(role))
+                    {
+                        string possessedName = permissionName;
+                        if (possessedName.StartsWith("View_" + inModel.ContentType))
+                        {
+                            queryName = possessedName.Substring("View_".Length);
+                            //IEnumerable<ContentItem> contentItems = _scheduleLayoutService.GetProjectionContentItems(new QueryModel { Name = queryName});
+                            IEnumerable<ContentItem> contentItems;
+
+                            if (_orchardServices.Authorizer.Authorize(Permissions.ManageSchedules))
+                                contentItems = _orchardServices.ContentManager.Query(VersionOptions.Latest, queryName).List();
+                            else
+                                contentItems = _orchardServices.ContentManager.Query(VersionOptions.Published, queryName).List();
+
+                            if (allContentItems == null)
+                                allContentItems = contentItems;
+                            else
+                                allContentItems = allContentItems.Select(x => x).Concat(contentItems.Select(y => y));
+                        }
+                    }
+                }
+            }
          
-            if (contentItems == null)
+            if (allContentItems == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
-            /*var scheduleOccurrences = contentItems
-                .Select(c => c.As<SchedulePart>())
-                .Where(s => _scheduleLayoutService.DateInRange(s, startDate, endDate))
-                .SelectMany(c => _scheduleService.GetOccurrencesForDateRange(c, startDate, endDate))
-                .OrderBy(o => o.Start);
-
-            var Schedules = contentItems
-                .Select(c => c.As<SchedulePart>())
-                .Where(s => _scheduleLayoutService.DateInRange(s, startDate, endDate));*/
 
             Dictionary<IContent, ScheduleData> ScheduleMap =
-                contentItems
+                allContentItems
                 .Select(c => new { k = (IContent)c, v = new ScheduleData(c, Url, _slugService, _orchardServices) })
                 .ToDictionary(c => c.k, c => c.v);
 
-            var scheduleOccurrences = contentItems
+            var scheduleOccurrences = allContentItems
                 .Select(c => c.As<SchedulePart>())
                 .Where(s => _scheduleLayoutService.DateInRange(s, inModel.StartDate, inModel.EndDate))
                 .SelectMany(c => _scheduleService.GetOccurrencesForDateRange(c, inModel.StartDate, inModel.EndDate))
@@ -99,10 +128,16 @@ namespace Orchard.Schedule.Controllers
             if (inModel == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 
-            var contentItem = _orchardServices.ContentManager.Get(inModel.Id, VersionOptions.DraftRequired);
+            var contentItem = _orchardServices.Authorizer.Authorize(Permissions.ManageSchedules) ? _orchardServices.ContentManager.Get(inModel.Id) : _orchardServices.ContentManager.Get(inModel.Id, VersionOptions.Published);//, VersionOptions.DraftRequired);
 
             if (contentItem == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+            ScheduleEditApiViewMode tmp = new ScheduleEditApiViewMode { ContentType = inModel.ContentType };
+            string contentType = GetContentType("View", ref tmp);
+            if (contentType == null || !contentType.Equals(contentItem.ContentType))
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to view content" });
+
 
             SchedulePart schedule = contentItem.As<SchedulePart>();
             ScheduleApiViewMode outModel = _scheduleLayoutService.GetOccurrenceViewModel(new ScheduleOccurrence(schedule, schedule.StartDate), new ScheduleData(contentItem, Url, _slugService, _orchardServices));
@@ -118,17 +153,24 @@ namespace Orchard.Schedule.Controllers
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
             }
 
-            if (!_orchardServices.Authorizer.Authorize(Permissions.ManageSchedules, T("Not authorized to manage schedules")))
-                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
+            if (!_orchardServices.Authorizer.Authorize(Permissions.AddSchedule, T("Not authorized to manage schedules")))
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage content" });
 
-            var schedule = _orchardServices.ContentManager.New<SchedulePart>(inModel.ContentType);
+            string contentType = GetContentType("Edit", ref inModel);
 
-            if (schedule != null)
+            if(contentType == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage content" });
+
+            var content = _orchardServices.ContentManager.New<SchedulePart>(contentType);
+
+
+            if (content != null)
             {
-                _orchardServices.ContentManager.Create(schedule, VersionOptions.Draft);
-                var editorShape = _orchardServices.ContentManager.UpdateEditor(schedule, _updateModelHandler.SetData(inModel));
-                _orchardServices.ContentManager.Publish(schedule.ContentItem);
-                return Ok(new ResultViewModel { Content = new { Id = schedule.Id }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+                _orchardServices.ContentManager.Create(content, VersionOptions.Draft);
+                var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(inModel));
+                if(inModel.IsPublished != null && (bool)inModel.IsPublished)
+                    _orchardServices.ContentManager.Publish(content.ContentItem);
+                return Ok(new ResultViewModel { Content = new { Id = content.Id }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
             }
             else
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.InternalServerError.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.InternalServerError) });
@@ -148,9 +190,18 @@ namespace Orchard.Schedule.Controllers
             if (!_orchardServices.Authorizer.Authorize(Permissions.ManageSchedules, schedule, T("Couldn't edit schedule")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't edit schedule" });
 
+            string contentType = GetContentType("Edit", ref inModel);
+
+            if (contentType == null || !contentType.Equals(schedule.ContentType))
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage content" });
+
             _orchardServices.ContentManager.UpdateEditor(schedule, _updateModelHandler.SetData(inModel));
 
-            _orchardServices.ContentManager.Publish(schedule);
+            if (inModel.IsPublished != null && (bool)inModel.IsPublished)
+                _orchardServices.ContentManager.Publish(schedule);
+            else
+                _orchardServices.ContentManager.Unpublish(schedule);
+
             _orchardServices.Notifier.Information(T("schedule information updated"));
 
             return Ok(new ResultViewModel { Content = new { Id = schedule.Id }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
@@ -168,6 +219,10 @@ namespace Orchard.Schedule.Controllers
             var schedule = _orchardServices.ContentManager.Get(inModel.Id);
             if (schedule == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+            string contentType = GetContentType("Delete", ref inModel);
+            if (contentType == null || !contentType.Equals(schedule.ContentType))
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to delete content" });
 
             Delete(inModel.Id);
 
@@ -190,6 +245,58 @@ namespace Orchard.Schedule.Controllers
                 case "single": _scheduleService.RemoveSingleDateForScheduleItem(id, date); break;
                 case "following": _scheduleService.RemoveFollowingDatesForScheduleItem(id, date); break;
             }
+        }
+
+        private string GetContentType(string prefix, ref ScheduleEditApiViewMode inModel)
+        {
+            prefix = prefix + "_";
+            IList<string> contentTypes = new List<string>();
+            IList<string> attendees = new List<string>();
+
+            string contentType = "";
+            string attendee = "";
+            IUser user = _authenticationService.GetAuthenticatedUser();
+            UserRolesPart rolesPart = user.As<UserRolesPart>();
+            if (rolesPart != null)
+            {
+                IEnumerable<string> userRoles = rolesPart.Roles;
+                foreach (var role in userRoles)
+                {
+                    foreach (var permissionName in _roleService.GetPermissionsForRoleByName(role))
+                    {
+                        string possessedName = permissionName;
+                        if (possessedName.StartsWith(prefix + inModel.ContentType))
+                        {
+                            contentType = possessedName.Substring(prefix.Length);
+                            contentTypes.Add(contentType);
+                        }
+
+                        if (inModel.Container != null)
+                        {
+                            if (possessedName.StartsWith(prefix + inModel.Container[0]))
+                            {
+                                attendee = possessedName.Substring(prefix.Length);
+                                attendees.Add(attendee);
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (inModel.Container != null)
+            {
+                if (attendees.Count() == 0)
+                    return null;
+                else if (attendees.Count() == 1)
+                    inModel.Container = attendees.ToArray();
+            }
+
+            if (contentTypes.Count() == 0)
+                return null;
+            else if (contentTypes.Count() == 1)
+                return contentTypes[0];
+            else
+                return inModel.ContentType;
         }
     }
 }

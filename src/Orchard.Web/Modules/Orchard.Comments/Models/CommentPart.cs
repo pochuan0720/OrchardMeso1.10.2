@@ -43,16 +43,16 @@ namespace Orchard.Comments.Models {
             get { return Record.Status; }
             set { Record.Status = value; }
         }
-
+        [JsonProperty]
         public DateTime? CommentDateUtc {
             get { return Record.CommentDateUtc; }
             set { Record.CommentDateUtc = value; }
         }
-        [JsonProperty]
+        /*[JsonProperty]
         public DateTime? CommentDateLocal
         {
             get { return CommentDateUtc == null ? CommentDateUtc : ((DateTime)CommentDateUtc).ToLocalTime(); }
-        }
+        }*/
 
         [JsonProperty]
         [Required, DisplayName("Comment")]

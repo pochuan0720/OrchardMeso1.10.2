@@ -20,7 +20,6 @@ using Orchard.Settings;
 using Newtonsoft.Json.Linq;
 using Orchard.UI.Notify;
 using Orchard.MediaLibrary.Handlers;
-using Orchard.Core.Common.Handlers;
 
 namespace Orchard.MediaLibrary.Controllers {
 

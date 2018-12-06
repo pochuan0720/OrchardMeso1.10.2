@@ -49,14 +49,15 @@ namespace Orchard.Blogs.Models {
             }
         }
 
+        [JsonProperty]
         public DateTime? PublishedUtc {
             get { return this.As<ICommonPart>().PublishedUtc; }
         }
 
-        [JsonProperty]
+        /*[JsonProperty]
         public DateTime? PublishedLocal
         {
             get { return PublishedUtc == null ? PublishedUtc : ((DateTime)PublishedUtc).ToLocalTime(); }
-        }
+        }*/
     }
 }

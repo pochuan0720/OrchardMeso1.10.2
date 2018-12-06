@@ -12,7 +12,6 @@ using Orchard.Blogs.ViewModels;
 using Orchard.Blogs.Handlers;
 using System.Net;
 using System.Web;
-using Orchard.Core.Common.Handlers;
 
 namespace Orchard.Blogs.Controllers {
 

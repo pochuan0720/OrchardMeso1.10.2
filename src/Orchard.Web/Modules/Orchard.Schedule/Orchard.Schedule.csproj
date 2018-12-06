@@ -157,6 +157,10 @@
       <Project>{5531e894-d259-45a3-aa61-26dbe720c1ce}</Project>
       <Name>Orchard.Projections</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Orchard.Roles\Orchard.Roles.csproj">
+      <Project>{d10ad48f-407d-4db5-a328-173ec7cb010f}</Project>
+      <Name>Orchard.Roles</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Orchard.Tags\Orchard.Tags.csproj">
       <Project>{5d0f00f0-26c9-4785-ad61-b85710c60eb0}</Project>
       <Name>Orchard.Tags</Name>
@@ -173,6 +177,7 @@
     <Compile Include="Controllers\ScheduleDetailController.cs" />
     <Compile Include="Drivers\SchedulePartDriver.cs" />
     <Compile Include="Drivers\ScheduleSettingsPartDriver.cs" />
+    <Compile Include="Handlers\IUpdateModelHandler.cs" />
     <Compile Include="Handlers\ScheduleHandler.cs" />
     <Compile Include="Handlers\ScheduleSettingsHandler.cs" />
     <Compile Include="Handlers\UpdateModelHandler.cs" />
@@ -229,6 +234,7 @@
     <Compile Include="ViewModels\EditScheduleViewModel.cs" />
     <Compile Include="ViewModels\AttendeeApiViewMode.cs" />
     <Compile Include="ViewModels\ScheduleApiViewMode.cs" />
+    <Compile Include="ViewModels\AttendeeEditApiViewMode.cs" />
     <Compile Include="ViewModels\ScheduleEditApiViewMode.cs" />
     <Compile Include="ViewModels\SchedulesIndexApiViewMode.cs" />
   </ItemGroup>

@@ -107,6 +107,7 @@
     <Compile Include="Controllers\CommentApiController.cs" />
     <Compile Include="Controllers\AdminController.cs" />
     <Compile Include="Controllers\CommentController.cs" />
+    <Compile Include="Handlers\IUpdateModelHandler.cs" />
     <Compile Include="Handlers\UpdateModelHandler.cs" />
     <Compile Include="Migrations.cs" />
     <Compile Include="Drivers\CommentPartDriver.cs" />

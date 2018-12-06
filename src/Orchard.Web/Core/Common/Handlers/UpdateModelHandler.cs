@@ -9,10 +9,13 @@ using Orchard.Core.Title.Models;
 using Orchard.Localization;
 using Orchard.Localization.Models;
 using Orchard.Localization.Services;
+using Orchard.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Xml;
 
 namespace Orchard.Core.Common.Handlers
@@ -22,10 +25,22 @@ namespace Orchard.Core.Common.Handlers
         protected JObject root = null;
         protected JToken fields = null;
         protected readonly IDateLocalizationServices _dateLocalizationServices;
+        protected readonly IHttpContextAccessor _httpContextAccessor;
 
         public UpdateModelHandler(IDateLocalizationServices dateLocalizationServices)
         {
             _dateLocalizationServices = dateLocalizationServices;
+        }
+
+        public UpdateModelHandler(IHttpContextAccessor httpContextAccessor)
+        {
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        public UpdateModelHandler(IDateLocalizationServices dateLocalizationServices, IHttpContextAccessor httpContextAccessor)
+        {
+            _dateLocalizationServices = dateLocalizationServices;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public IUpdateModelHandler SetData(object _root)
@@ -43,7 +58,7 @@ namespace Orchard.Core.Common.Handlers
             throw new NotImplementedException();
         }
 
-        public bool TryUpdateModel<TModel>(TModel model, string prefix, string[] includeProperties, string[] excludeProperties) where TModel : class
+        public virtual bool TryUpdateModel<TModel>(TModel model, string prefix, string[] includeProperties, string[] excludeProperties) where TModel : class
         {
             dynamic _model = model;
             string type = model.GetType().ToString();
@@ -69,8 +84,8 @@ namespace Orchard.Core.Common.Handlers
                 else if (type.Equals("Orchard.Fields.ViewModels.DateTimeFieldViewModel") && fields[prefix] != null)
                 {
                     DateTime dt = (DateTime)fields[prefix];
-                    string date = _dateLocalizationServices.ConvertToLocalizedDateString(dt, new DateLocalizationOptions() { EnableTimeZoneConversion = false });// dt.Date.ToString("MM/dd/yyyy");
-                    string time = _dateLocalizationServices.ConvertToLocalizedTimeString(dt, new DateLocalizationOptions() { EnableTimeZoneConversion = false });// dt.Date.ToString("h:mm", new CultureInfo("en-US"));
+                    string date = _dateLocalizationServices.ConvertToLocalizedDateString(dt, new DateLocalizationOptions());// dt.Date.ToString("MM/dd/yyyy");
+                    string time = _dateLocalizationServices.ConvertToLocalizedTimeString(dt, new DateLocalizationOptions());// dt.Date.ToString("h:mm", new CultureInfo("en-US"));
                     _model.Editor = new DateTimeEditor()
                     {
                         Date = date,
@@ -88,6 +103,14 @@ namespace Orchard.Core.Common.Handlers
                     _model.Text = fields[prefix].ToString();
                     return true;
                 }
+                else if (type.Equals("Orchard.Fields.Fields.BooleanField") && fields[prefix] != null)
+                {
+                    var node = fields[prefix];
+                    _model.Value = (bool)node;
+                    return true;
+                }
+
+               
             }
 
             if (root != null)
@@ -97,7 +120,7 @@ namespace Orchard.Core.Common.Handlers
                     _model.Title = root[prefix].ToString();
                     return true;
                 }
-                else if (typeof(BodyEditorViewModel) == model.GetType() && root[prefix] != null )
+                else if (typeof(BodyEditorViewModel) == model.GetType() && root[prefix] != null)
                 {
                     _model.Text = root[prefix].ToString();
                     return true;
@@ -112,12 +135,7 @@ namespace Orchard.Core.Common.Handlers
                     _model.SelectedItemContentTypes = root[prefix].ToObject<List<string>>();
                     return true;
                 }
-                else if (typeof(OwnerEditorViewModel) == model.GetType() && root[prefix] != null)
-                {
-                    _model.Owner = root["Owner"].ToString();
-                    return true;
-                }
-                else if (typeof(OwnerEditorViewModel) == model.GetType() && root[prefix] != null)
+                else if (typeof(OwnerEditorViewModel) == model.GetType() && root["Owner"] != null)
                 {
                     _model.Owner = root["Owner"].ToString();
                     return true;
@@ -125,6 +143,31 @@ namespace Orchard.Core.Common.Handlers
                 else if (type.Equals("Orchard.Roles.ViewModels.UserRolesViewModel") && root[prefix] != null)
                 {
                     _model.Roles = CreateEntryList(root, prefix, "Orchard.Roles.ViewModels.UserRoleEntry, Orchard.Roles");
+                    return true;
+                }
+                else if (type.Equals("Orchard.PublishLater.ViewModels.PublishLaterViewModel") && root[prefix] != null)
+                {
+                    var data = root[prefix];
+
+                    if (!string.IsNullOrEmpty(data.ToString()))
+                    {
+                        DateTime dt = (DateTime)data;
+
+                        _model.IsPublishLater = true;
+
+                        string date = _dateLocalizationServices.ConvertToLocalizedDateString(dt, new DateLocalizationOptions());// dt.Date.ToString("MM/dd/yyyy");
+                        string time = _dateLocalizationServices.ConvertToLocalizedTimeString(dt, new DateLocalizationOptions());// dt.Date.ToString("h:mm", new CultureInfo("en-US"));
+                        _model.Editor = new DateTimeEditor()
+                        {
+                            Date = date,
+                            Time = time,
+                        };
+                    }
+                    else
+                    {
+                        _model.IsPublishLater = false;
+                    }
+
                     return true;
                 }
             }
@@ -205,6 +248,8 @@ namespace Orchard.Core.Common.Handlers
                         }
                         obj.Add(new JProperty(item.Prefix, checkedTerms.ToArray()));
                     }
+                    else if(item.TemplateName.Equals("Fields/Boolean.Edit"))
+                        obj.Add(new JProperty(item.Prefix, item.ContentField.Value));
                     //else
                     //    obj.Add(new JProperty(item.Prefix, item.TemplateName));
                 }

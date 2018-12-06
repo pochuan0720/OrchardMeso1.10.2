@@ -32,6 +32,14 @@ namespace Orchard.ContentManagement.FieldStorage {
             }
 
             return (T)Convert.ChangeType(value, t, CultureInfo.InvariantCulture);
+            //Meso Frank
+            /*try
+            {
+                return (T)Convert.ChangeType(value, t, CultureInfo.InvariantCulture);
+            } catch(Exception e)
+            {
+                return (T)Convert.ChangeType(false, t, CultureInfo.InvariantCulture);
+            }*/
         }
 
         public void Set<T>(string name, T value) {
