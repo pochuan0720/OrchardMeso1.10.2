@@ -136,7 +136,7 @@ namespace Orchard.Blogs.Controllers {
 
             Services.Notifier.Information(T("Your {0} has been saved.", blogPost.TypeDefinition.DisplayName));
 
-            return Ok(new ResultViewModel { Content = blogPost, Success = true,  Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+            return Ok(new ResultViewModel { Content = new { Id = blogPost.Id}, Success = true,  Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
         [HttpPost]
@@ -177,6 +177,9 @@ namespace Orchard.Blogs.Controllers {
             if (blogpost == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
+            var model = Services.ContentManager.BuildEditor(blogpost);
+            blogpost.Data = UpdateModelHandler.GetData(model);
+
             return Ok(new ResultViewModel { Content = blogpost, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
@@ -202,15 +205,22 @@ namespace Orchard.Blogs.Controllers {
 
             if (pager != null)
             {
-                blogPosts = _blogPostService.Get(blogPart, pager.GetStartIndex(), pager.PageSize, VersionOptions.Latest).ToArray();
+                blogPosts = _blogPostService.Get(blogPart, pager.GetStartIndex(), pager.PageSize, VersionOptions.Latest).Select( x => getData(x.As<BlogPostPart>())).ToList();
                 pager.PageSize = blogPosts.Count;
             }
             else
-                blogPosts = _blogPostService.Get(blogPart, VersionOptions.Latest).ToArray();
+                blogPosts = _blogPostService.Get(blogPart, VersionOptions.Latest).Select(x => getData(x.As<BlogPostPart>())).ToList();
 
             BlogPostsIndexApiViewModel model = new BlogPostsIndexApiViewModel { BlogId = inModel.BlogId, Data = blogPosts, Pager = pager };
 
             return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+        }
+
+        private BlogPostPart getData(BlogPostPart part)
+        {
+            var model = Services.ContentManager.BuildEditor(part);
+            part.Data = UpdateModelHandler.GetData(model);
+            return part;
         }
     }
 }

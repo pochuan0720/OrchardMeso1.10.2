@@ -7,6 +7,8 @@ using Orchard.ContentManagement.Handlers;
 using Orchard.MediaLibrary.ViewModels;
 using Orchard.Localization;
 using Orchard.Utility.Extensions;
+using System.Collections.Generic;
+using Orchard.MediaLibrary.Models;
 
 namespace Orchard.MediaLibrary.Drivers {
     public class MediaLibraryPickerFieldDriver : ContentFieldDriver<Fields.MediaLibraryPickerField> {
@@ -38,10 +40,13 @@ namespace Orchard.MediaLibrary.Drivers {
         protected override DriverResult Editor(ContentPart part, Fields.MediaLibraryPickerField field, dynamic shapeHelper) {
             return ContentShape("Fields_MediaLibraryPicker_Edit", GetDifferentiator(field, part),
                 () => {
+                    ICollection<ContentItem> ContentItems = _contentManager.GetMany<ContentItem>(field.Ids, VersionOptions.Published, QueryHints.Empty).ToList();
+                    ICollection<object> Objects = ContentItems.Select(x => x.As<MediaPart>()).Select(y => new { Id = y.Id, FileName = y.FileName }).ToList<object>();
                     var model = new MediaLibraryPickerFieldViewModel {
                         Field = field,
                         Part = part,
-                        ContentItems = _contentManager.GetMany<ContentItem>(field.Ids, VersionOptions.Published, QueryHints.Empty).ToList(),
+                        ContentItems = ContentItems,
+                        Objects = Objects
                     };
 
                     model.SelectedIds = string.Concat(",", field.Ids);

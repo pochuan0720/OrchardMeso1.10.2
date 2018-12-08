@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Orchard.Blogs.Handlers;
 using Orchard.Blogs.Models;
 using Orchard.ContentManagement;
 using Orchard.Core.Common.Models;
@@ -80,7 +81,14 @@ namespace Orchard.Blogs.Services {
                 query = query.Where(cr => cr.CreatedUtc >= yearDate && cr.CreatedUtc < yearDate.AddYears(1));
             }
 
-            return query.List().Select(ci => ci.As<BlogPostPart>());
+            return query.List().Select(ci => getData(ci.As<BlogPostPart>()));
+        }
+
+        private BlogPostPart getData(BlogPostPart part)
+        {
+            var model = _contentManager.BuildEditor(part);
+            part.Data = UpdateModelHandler.GetData(model);
+            return part;
         }
 
         public IEnumerable<KeyValuePair<ArchiveData, int>> GetArchives(BlogPart blogPart) {

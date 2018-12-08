@@ -20,6 +20,8 @@ using Orchard.Settings;
 using Newtonsoft.Json.Linq;
 using Orchard.UI.Notify;
 using Orchard.MediaLibrary.Handlers;
+using System.Net.Http.Headers;
+using System.Text;
 
 namespace Orchard.MediaLibrary.Controllers {
 
@@ -221,6 +223,33 @@ namespace Orchard.MediaLibrary.Controllers {
 
             return Ok(new ResultViewModel {Content = statuses, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
 
+        }
+
+        [HttpPost]
+        public IHttpActionResult Download(JObject inModel)
+        {
+            if (inModel == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+
+            var content = Services.ContentManager.Get((int)inModel["Id"], VersionOptions.DraftRequired);
+
+            if (content == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+            MediaPart part = content.As<MediaPart>();
+            var sourcePath = HttpContext.Current.Server.MapPath(@"~/Media/Default/" + part.FolderPath + "/" + part.FileName); //取得server的相對路徑
+            if (!File.Exists(sourcePath))
+            {
+                return ResponseMessage(new HttpResponseMessage(HttpStatusCode.Gone));
+            }
+            var response = new HttpResponseMessage(HttpStatusCode.OK);
+            var fileStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read);
+            response.Content = new StreamContent(fileStream);
+            response.Content.Headers.ContentType = new MediaTypeHeaderValue(part.MimeType);
+            response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment");
+            response.Content.Headers.ContentDisposition.FileName = HttpUtility.UrlPathEncode(part.FileName);
+            response.Content.Headers.ContentLength = fileStream.Length; //告知瀏覽器下載長度
+            return ResponseMessage(response);
         }
 
         [HttpPost]

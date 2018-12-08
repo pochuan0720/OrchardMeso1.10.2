@@ -9,8 +9,6 @@ using Orchard.Users.Services;
 using Orchard.Users.ViewModels;
 using Orchard.Settings;
 using Orchard.UI.Navigation;
-using System.Web.Http;
-using System.Xml;
 using System;
 using Orchard.Core.Common.ViewModels;
 using System.Text.RegularExpressions;
@@ -19,8 +17,7 @@ using Orchard.UI.Notify;
 using Orchard.Core.Common.Handlers;
 using System.Net;
 using System.Web;
-using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
+using System.Web.Http;
 
 namespace Orchard.Users.Controllers {
     [Authorize]

@@ -56,13 +56,15 @@ namespace Orchard.Schedule.Drivers
             part.AllDay = model.AllDay;
 
             var startDate = DateTime.ParseExact(model.StartDate, ParseFormat, CultureInfo.InvariantCulture);
-            var startTime = TimeSpan.Parse(model.StartTime);
+            var startTime = Convert.ToDateTime(model.StartTime).TimeOfDay;
+            //var startTime = TimeSpan.Parse(model.StartTime);
 
             part.StartDate = startDate;
             part.StartTime = startTime;
 
             var endDate = DateTime.ParseExact(model.EndDate, ParseFormat, CultureInfo.InvariantCulture);
-            var endTime = TimeSpan.Parse(model.EndTime);
+            var endTime = Convert.ToDateTime(model.EndTime).TimeOfDay;
+            //var endTime = TimeSpan.Parse(model.EndTime);
 
             var duration = endDate - startDate;
             if (!model.AllDay)

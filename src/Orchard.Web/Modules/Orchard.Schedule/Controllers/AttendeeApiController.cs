@@ -215,7 +215,7 @@ namespace Orchard.Schedule.Controllers
         [HttpPost]
         public IHttpActionResult self(SchedulesIndexApiViewMode inModel)
         {
-            if (inModel == null || inModel.ContentType == null)
+            if (inModel == null || inModel.Query == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 
 
@@ -232,7 +232,7 @@ namespace Orchard.Schedule.Controllers
                     foreach (var permissionName in _roleService.GetPermissionsForRoleByName(role))
                     {
                         string possessedName = permissionName;
-                        if (possessedName.StartsWith("View_" + inModel.ContentType))
+                        if (possessedName.StartsWith("View_" + inModel.Query.Name))
                         {
                             queryName = possessedName.Substring("View_".Length);
                             IEnumerable<ContentItem> contentItems = _projectionManager.GetContentItems(new QueryModel { Name = queryName });
@@ -288,7 +288,7 @@ namespace Orchard.Schedule.Controllers
         [HttpPost]
         public IHttpActionResult cancellist(SchedulesIndexApiViewMode inModel)
         {
-            if (inModel == null || inModel.ContentType == null)
+            if (inModel == null || inModel.Query == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 
 
@@ -305,7 +305,7 @@ namespace Orchard.Schedule.Controllers
                     foreach (var permissionName in _roleService.GetPermissionsForRoleByName(role))
                     {
                         string possessedName = permissionName;
-                        if (possessedName.StartsWith("View_" + inModel.ContentType))
+                        if (possessedName.StartsWith("View_" + inModel.Query.Name))
                         {
                             queryName = possessedName.Substring("View_".Length);
                             IEnumerable<ContentItem> contentItems = _orchardServices.ContentManager.Query(VersionOptions.Draft, queryName).List();// _projectionManager.GetContentItems(new QueryModel { Name = queryName });

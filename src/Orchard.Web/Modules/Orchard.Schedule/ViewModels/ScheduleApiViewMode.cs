@@ -1,4 +1,5 @@
-﻿using Orchard.Schedule.Models;
+﻿using Newtonsoft.Json.Linq;
+using Orchard.Schedule.Models;
 using Orchard.UI.Navigation;
 using System;
 using System.Collections.Generic;
@@ -18,7 +19,7 @@ namespace Orchard.Schedule.ViewModels
         public object[] Attendee { get; set; }
         [Required]
         public string[] Container { get; set; }
-        public object Data { get; set; }
+        public JObject Data { get; set; }
 
     }
 }

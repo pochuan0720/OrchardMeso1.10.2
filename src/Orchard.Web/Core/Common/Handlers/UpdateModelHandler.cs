@@ -236,7 +236,12 @@ namespace Orchard.Core.Common.Handlers
                     else if (item.TemplateName.Equals("Fields/DateTime.Edit"))
                         obj.Add(new JProperty(item.Prefix, item.ContentField.DateTime));
                     else if (item.TemplateName.Equals("Fields/MediaLibraryPicker.Edit"))
-                        obj.Add(new JProperty(item.Prefix, item.Model.Field.Ids));
+                    {
+                        List<JObject> list = new List<JObject>();
+                        foreach (var a in item.Model.Objects)
+                            list.Add(JObject.FromObject(a));
+                        obj.Add(new JProperty(item.Prefix, list.ToArray()));
+                    }
                     else if (item.TemplateName.Equals("Fields/TaxonomyField"))
                     {
                         var viewModel = item.Model;
@@ -248,7 +253,7 @@ namespace Orchard.Core.Common.Handlers
                         }
                         obj.Add(new JProperty(item.Prefix, checkedTerms.ToArray()));
                     }
-                    else if(item.TemplateName.Equals("Fields/Boolean.Edit"))
+                    else if (item.TemplateName.Equals("Fields/Boolean.Edit"))
                         obj.Add(new JProperty(item.Prefix, item.ContentField.Value));
                     //else
                     //    obj.Add(new JProperty(item.Prefix, item.TemplateName));

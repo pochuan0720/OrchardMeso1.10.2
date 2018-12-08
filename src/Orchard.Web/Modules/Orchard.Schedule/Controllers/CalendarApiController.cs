@@ -19,6 +19,7 @@ using Orchard.Projections.Models;
 using Orchard.Security;
 using Orchard.Roles.Services;
 using Orchard.Roles.Models;
+using Newtonsoft.Json.Linq;
 
 namespace Orchard.Schedule.Controllers
 {
@@ -64,7 +65,7 @@ namespace Orchard.Schedule.Controllers
         [HttpPost]
         public IHttpActionResult query(SchedulesIndexApiViewMode inModel)
         {
-            if (inModel == null || inModel.ContentType == null)
+            if (inModel == null || inModel.Query == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 
             IEnumerable<ContentItem> allContentItems = null;
@@ -80,7 +81,7 @@ namespace Orchard.Schedule.Controllers
                     foreach (var permissionName in _roleService.GetPermissionsForRoleByName(role))
                     {
                         string possessedName = permissionName;
-                        if (possessedName.StartsWith("View_" + inModel.ContentType))
+                        if (possessedName.StartsWith("View_" + inModel.Query.Name))
                         {
                             queryName = possessedName.Substring("View_".Length);
                             //IEnumerable<ContentItem> contentItems = _scheduleLayoutService.GetProjectionContentItems(new QueryModel { Name = queryName});
@@ -133,7 +134,7 @@ namespace Orchard.Schedule.Controllers
             if (contentItem == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
-            ScheduleEditApiViewMode tmp = new ScheduleEditApiViewMode { ContentType = inModel.ContentType };
+            ScheduleEditApiViewMode tmp = new ScheduleEditApiViewMode { ContentType = inModel.Query.Name };
             string contentType = GetContentType("View", ref tmp);
             if (contentType == null || !contentType.Equals(contentItem.ContentType))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to view content" });
@@ -174,6 +175,79 @@ namespace Orchard.Schedule.Controllers
             }
             else
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.InternalServerError.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.InternalServerError) });
+        }
+
+        [HttpPost]
+        public IHttpActionResult batch(ScheduleEditApiViewMode inModel)
+        {
+            if (inModel == null)
+            {
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+            }
+
+            if (!_orchardServices.Authorizer.Authorize(Permissions.AddSchedule, T("Not authorized to manage schedules")))
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage content" });
+
+            string contentType = GetContentType("Edit", ref inModel);
+
+            if (contentType == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage content" });
+
+            var statuses = new List<object>();
+
+            foreach (string place in inModel.Places)
+            {
+                if (inModel.IsDaily)
+                {
+                    foreach (DateTime day in EachDay(inModel.StartDate, inModel.EndDate))
+                    {
+                        var content = _orchardServices.ContentManager.New<SchedulePart>(contentType);
+                        if (content != null)
+                        {
+                            ScheduleEditApiViewMode _inModel = (ScheduleEditApiViewMode)inModel.Clone();
+                            _inModel.StartDate = day;
+                            _inModel.EndDate = day;
+
+                            _orchardServices.ContentManager.Create(content, VersionOptions.Draft);
+                            var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(_inModel));
+                            if (inModel.IsPublished != null && (bool)inModel.IsPublished)
+                                _orchardServices.ContentManager.Publish(content.ContentItem);
+
+                            statuses.Add(new
+                            {
+                                Id = content.Id,
+                                Date = day,
+                                Place = place
+                            });
+                        }
+                    }
+                }
+                else
+                {
+                    var content = _orchardServices.ContentManager.New<SchedulePart>(contentType);
+                    if (content != null)
+                    {
+                        ScheduleEditApiViewMode _inModel = (ScheduleEditApiViewMode)inModel.Clone();
+                        if (_inModel.Data["Appointment2.Place"] != null)
+                            _inModel.Data["Appointment2.Place"] = place;
+                        else
+                            _inModel.Data.Add(new JProperty("Appointment2.Place", place));
+
+                        _orchardServices.ContentManager.Create(content, VersionOptions.Draft);
+                        var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(inModel));
+                        if (inModel.IsPublished != null && (bool)inModel.IsPublished)
+                            _orchardServices.ContentManager.Publish(content.ContentItem);
+
+                        statuses.Add(new
+                        {
+                            Id = content.Id,
+                            Place = place
+                        });
+                    }
+                }
+            }
+
+            return Ok(new ResultViewModel { Content = statuses , Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
         [HttpPost]
@@ -297,6 +371,12 @@ namespace Orchard.Schedule.Controllers
                 return contentTypes[0];
             else
                 return inModel.ContentType;
+        }
+
+        private IEnumerable<DateTime> EachDay(DateTime from, DateTime thru)
+        {
+            for (var day = from.Date; day.Date <= thru.Date; day = day.AddDays(1))
+                yield return day;
         }
     }
 }

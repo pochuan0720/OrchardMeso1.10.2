@@ -1,4 +1,6 @@
 ﻿using Orchard.ContentManagement;
+using Orchard.Core.Common.ViewModels;
+using Orchard.Localization.Models;
 using Orchard.Localization.Services;
 using Orchard.Mvc;
 using Orchard.Schedule.Models;
@@ -22,11 +24,11 @@ namespace Orchard.Schedule.Handlers
                 {
                     dynamic _model = model;
                     DateTime start = (DateTime)root["StartDate"];
+                    _model.StartDate = _dateLocalizationServices.ConvertToLocalizedDateString(start, new DateLocalizationOptions() { EnableTimeZoneConversion = false });
+                    _model.StartTime = _dateLocalizationServices.ConvertToLocalizedTimeString(start, new DateLocalizationOptions() { EnableTimeZoneConversion = false });
                     DateTime end = (DateTime)root["EndDate"];
-                    _model.StartDate = start.ToString("MM/dd/yyyy");
-                    _model.StartTime = start.ToString("h:mm:ss", new CultureInfo("en-US"));
-                    _model.EndDate = end.ToString("MM/dd/yyyy");
-                    _model.EndTime = end.ToString("h:mm:ss", new CultureInfo("en-US"));
+                    _model.EndDate = _dateLocalizationServices.ConvertToLocalizedDateString(end, new DateLocalizationOptions() { EnableTimeZoneConversion = false });
+                    _model.EndTime = _dateLocalizationServices.ConvertToLocalizedTimeString(end, new DateLocalizationOptions() { EnableTimeZoneConversion = false });
                     return true;
                 }
                 else

@@ -33,7 +33,7 @@ namespace Orchard.Blogs.Models {
         public bool IsPublished {
             get { return ContentItem.VersionRecord != null && ContentItem.VersionRecord.Published; }
         }
-        [JsonProperty]
+
         public bool HasDraft {
             get {
                 return (
@@ -42,11 +42,17 @@ namespace Orchard.Blogs.Models {
                                (ContentItem.VersionRecord.Published && ContentItem.VersionRecord.Latest == false)));
             }
         }
-        [JsonProperty]
+
         public bool HasPublished {
             get {
                 return IsPublished || ContentItem.ContentManager.Get(Id, VersionOptions.Published) != null;
             }
+        }
+
+        [JsonProperty]
+        public DateTime? CreatedUtc
+        {
+            get { return this.As<ICommonPart>().CreatedUtc; }
         }
 
         [JsonProperty]
@@ -59,5 +65,8 @@ namespace Orchard.Blogs.Models {
         {
             get { return PublishedUtc == null ? PublishedUtc : ((DateTime)PublishedUtc).ToLocalTime(); }
         }*/
+
+        [JsonProperty]
+        public object Data { get; set; }
     }
 }
