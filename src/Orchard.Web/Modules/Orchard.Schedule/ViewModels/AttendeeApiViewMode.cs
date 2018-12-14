@@ -10,7 +10,7 @@ namespace Orchard.Schedule.ViewModels
     {
         public int Id { get; set; }
         [Required]
-        public string ContainerId { get; set; }
+        public int ContainerId { get; set; }
         public string Owner { get; set; }
         public object Data { get; set; }
 

@@ -107,7 +107,7 @@ namespace Orchard.Mvc {
                 // we have a better chance to maintain the HttpContext.Current state even with some asynchronous code.
 
                 get {
-                    if (_httpContext == null) {
+                    if (_httpContext == null && !string.IsNullOrEmpty(_baseUrl.Value)) {
                         var httpContext = new HttpContext(new HttpRequest("", _baseUrl.Value, ""), new HttpResponse(new StringWriter()));
                         httpContext.Items[IsBackgroundHttpContextKey] = true;
                         _httpContext = httpContext;

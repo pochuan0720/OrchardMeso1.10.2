@@ -1,0 +1,10 @@
+﻿Name: Meso.Volunteer
+AntiForgery: enabled
+Author: The Meso Team
+Website: http://www.meso-tek.com
+Version: 0.1
+OrchardVersion: 10.2
+Description: Description for the module
+Features:
+    Meso.Volunteer:
+        Description: Description for feature Meso.Volunteer.

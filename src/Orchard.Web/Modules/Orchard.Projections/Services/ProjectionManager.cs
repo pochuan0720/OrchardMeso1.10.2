@@ -168,15 +168,6 @@ namespace Orchard.Projections.Services {
                 tokens.Add("Content", part.ContentItem);
             }
 
-            /*if(extraPartRecord != null)
-            {
-                foreach (var cur in extraPartRecord.FilterGroups)
-                {
-                    queryRecord.FilterGroups.Add(cur);
-                }
-                //queryRecord.FilterGroups.Concat(extraPartRecord.FilterGroups);
-            }*/
-
             // aggregate the result for each group query
             foreach (var contentQuery in GetContentQueries(queryRecord, queryRecord.SortCriteria.OrderBy(sc => sc.Position), tokens, extraPartRecord)) {
                 contentItems.AddRange(contentQuery.Slice(skip, count));
@@ -199,7 +190,8 @@ namespace Orchard.Projections.Services {
             foreach (var sortCriterion in queryRecord.SortCriteria.OrderBy(s => s.Position)) {
                 var sortCriterionContext = new SortCriterionContext {
                     Query = groupQuery,
-                    State = FormParametersHelper.ToDynamic(sortCriterion.State)
+                    State = FormParametersHelper.ToDynamic(sortCriterion.State),
+                    QueryPartRecord = queryRecord
                 };
 
                 string category = sortCriterion.Category;
@@ -231,17 +223,25 @@ namespace Orchard.Projections.Services {
             }
 
             // pre-executing all groups 
+            var versionScope = queryRecord.VersionScope;
             foreach (var group in queryRecord.FilterGroups) {
 
-                var contentQuery = _contentManager.HqlQuery().ForVersion(VersionOptions.Published);
-                var extraGroup = extraPartRecord == null ? null : extraPartRecord.FilterGroups.Where(g => g.Id == group.Id).SingleOrDefault();
-
-                // iterate over each filter to apply the alterations to the query object
+                IHqlQuery contentQuery;
+                if (versionScope == QueryVersionScopeOptions.Latest) {
+                    contentQuery = _contentManager.HqlQuery().ForVersion(VersionOptions.Latest);
+                }
+                else {
+                    contentQuery = _contentManager.HqlQuery().ForVersion(VersionOptions.Published);
+                }
+				var extraGroup = extraPartRecord == null ? null : extraPartRecord.FilterGroups.Where(g => g.Id == group.Id).SingleOrDefault();
+                
+				// iterate over each filter to apply the alterations to the query object
                 foreach (var filter in group.Filters) {
                     var tokenizedState = _tokenizer.Replace(filter.State, tokens);
                     var filterContext = new FilterContext {
                         Query = contentQuery,
-                        State = FormParametersHelper.ToDynamic(tokenizedState)
+                        State = FormParametersHelper.ToDynamic(tokenizedState),
+                        QueryPartRecord = queryRecord
                     };
 
                     string category = filter.Category;
@@ -299,11 +299,13 @@ namespace Orchard.Projections.Services {
                     }
                 }
 
+
                 // iterate over each sort criteria to apply the alterations to the query object
                 foreach (var sortCriterion in sortCriteria.OrderBy(s => s.Position)) {
                     var sortCriterionContext = new SortCriterionContext {
                         Query = contentQuery,
-                        State = FormParametersHelper.ToDynamic(sortCriterion.State)
+                        State = FormParametersHelper.ToDynamic(sortCriterion.State),
+                        QueryPartRecord= queryRecord
                     };
 
                     string category = sortCriterion.Category;

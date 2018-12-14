@@ -15,6 +15,7 @@ namespace Orchard.Schedule.ViewModels
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public DateTime? PublishLater { get; set; }
+       // public DateTime? ArchiveLater { get; set; }
         public bool? IsPublished { get; set; }
         public object[] Attendee { get; set; }
         [Required]

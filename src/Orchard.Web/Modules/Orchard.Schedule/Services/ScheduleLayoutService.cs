@@ -58,12 +58,17 @@ namespace Orchard.Schedule.Services {
             IList<object> list = new List<object>();
             IList<string> selectedItemContentTypes = new List<string>();
             DateTime? publishLater = null;
+            //DateTime? archiveLater = null;
             foreach (dynamic part in scheduleEvent.Source.ContentItem.Parts)
             {
                 if (part.ScheduledPublishUtc != null)
                 {
                     publishLater = part.ScheduledPublishUtc.Value;
                 }
+                /*else if (part.ScheduledPublishUtc != null)
+                {
+                    archiveLater = part.ScheduledArchiveUtc.Value;
+                }*/
 
             }
 
@@ -111,6 +116,7 @@ namespace Orchard.Schedule.Services {
                 EndDate = TimeZoneInfo.ConvertTimeToUtc(scheduleEvent.End, schedule.TimeZone),
                 IsPublished = schedule.IsPublished,
                 PublishLater = publishLater == null ? publishLater : (DateTime)publishLater,
+                //ArchiveLater = archiveLater == null ? archiveLater : (DateTime)archiveLater,
                 Attendee = list.ToArray(),
                 Container = selectedItemContentTypes.ToArray<string>(),
                 Data = UpdateModelHandler.GetData(model)

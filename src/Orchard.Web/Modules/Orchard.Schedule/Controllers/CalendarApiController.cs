@@ -34,7 +34,7 @@ namespace Orchard.Schedule.Controllers
         private readonly IUpdateModelHandler _updateModelHandler;
         private readonly IAuthenticationService _authenticationService;
         private static DateTime UnixEpochTime = new DateTime(1970, 1, 1);
-
+        private static IMembershipService _membershipService;
         public CalendarApiController(
             IRoleService roleService,
             IScheduleService scheduleService,
@@ -43,7 +43,8 @@ namespace Orchard.Schedule.Controllers
             ISlugService slugService,
             IShapeFactory shapeFactory,
             IUpdateModelHandler updateModelHandler,
-            IAuthenticationService authenticationService
+            IAuthenticationService authenticationService,
+            IMembershipService membershipService
             )
         {
             _roleService = roleService;
@@ -53,6 +54,7 @@ namespace Orchard.Schedule.Controllers
             _slugService = slugService;
             _updateModelHandler = updateModelHandler;
             _authenticationService = authenticationService;
+            _membershipService = membershipService;
             Logger = NullLogger.Instance;
             T = NullLocalizer.Instance;
             Shape = shapeFactory;
@@ -88,9 +90,15 @@ namespace Orchard.Schedule.Controllers
                             IEnumerable<ContentItem> contentItems;
 
                             if (_orchardServices.Authorizer.Authorize(Permissions.ManageSchedules))
+                            {
+                                //contentItems = _scheduleLayoutService.GetProjectionContentItems(new QueryModel { Name = "Latest_" + queryName });
                                 contentItems = _orchardServices.ContentManager.Query(VersionOptions.Latest, queryName).List();
+                            }
                             else
+                            {
+                                //contentItems = _scheduleLayoutService.GetProjectionContentItems(new QueryModel { Name = "Published_" + queryName });
                                 contentItems = _orchardServices.ContentManager.Query(VersionOptions.Published, queryName).List();
+                            }
 
                             if (allContentItems == null)
                                 allContentItems = contentItems;
@@ -129,7 +137,7 @@ namespace Orchard.Schedule.Controllers
             if (inModel == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 
-            var contentItem = _orchardServices.Authorizer.Authorize(Permissions.ManageSchedules) ? _orchardServices.ContentManager.Get(inModel.Id) : _orchardServices.ContentManager.Get(inModel.Id, VersionOptions.Published);//, VersionOptions.DraftRequired);
+            var contentItem = _orchardServices.Authorizer.Authorize(Permissions.ManageSchedules) ? _orchardServices.ContentManager.Get(inModel.Id, VersionOptions.Latest) : _orchardServices.ContentManager.Get(inModel.Id, VersionOptions.Published);//, VersionOptions.DraftRequired);
 
             if (contentItem == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
@@ -197,7 +205,7 @@ namespace Orchard.Schedule.Controllers
 
             foreach (string place in inModel.Places)
             {
-                if (inModel.IsDaily)
+                if (inModel.IsDaily != null && (bool)inModel.IsDaily)
                 {
                     foreach (DateTime day in EachDay(inModel.StartDate, inModel.EndDate))
                     {
@@ -206,7 +214,53 @@ namespace Orchard.Schedule.Controllers
                         {
                             ScheduleEditApiViewMode _inModel = (ScheduleEditApiViewMode)inModel.Clone();
                             _inModel.StartDate = day;
-                            _inModel.EndDate = day;
+                            _inModel.EndDate = day.AddDays(1).AddMinutes(-1);
+
+                            if (contentType.Equals("Appointment"))
+                            {
+                                IUser user = _membershipService.GetUser(place);
+                                var model = _orchardServices.ContentManager.BuildEditor(user);
+                                JObject Data = UpdateModelHandler.GetData(model);
+                                if (user != null)
+                                {
+                                    _inModel.Title = Data["User.Nickname"].ToString();
+                                    if (_inModel.Data == null)
+                                        _inModel.Data = new JObject();
+                                    else
+                                    {
+                                        if(_inModel.Data["Appointment.PeopleQuota"] == null)
+                                            _inModel.Data.Add(new JProperty("Appointment.PeopleQuota", 100));
+                                        if (_inModel.Data["Appointment.VolunteerQuota"] == null)
+                                            _inModel.Data.Add(new JProperty("Appointment.VolunteerQuota", 1));
+                                    }
+
+                                    if (Data["User.Unit"] != null)
+                                        setJObject(_inModel.Data, "Appointment.ApplyUnit", Data["User.Unit"]);
+
+                                    setJObject(_inModel.Data, "Appointment.Place", place);
+
+                                    if (Data["User.Nickname"] != null)
+                                        setJObject(_inModel.Data, "Appointment.Item", Data["User.Nickname"]);
+
+
+                                    if (Data["User.Name"] != null)
+                                        setJObject(_inModel.Data, "Appointment.Contact", Data["User.Name"]);
+
+                                    if (Data["User.OrgTel"] != null)
+                                        setJObject(_inModel.Data, "Appointment.ContactTel", Data["User.OrgTel"]);
+
+                                    if (Data["User.MobileTel"] != null)
+                                        setJObject(_inModel.Data, "Appointment.ContactMobile", Data["User.MobileTel"]);
+
+                                    setJObject(_inModel.Data, "Appointment.FormState", "審核通過");
+                                    setJObject(_inModel.Data, "Appointment.Source", "處內");
+                                    setJObject(_inModel.Data, "Appointment.Email", user.Email);
+                                }
+                            }
+                            else if (contentType.Equals("Appointment2"))
+                            {
+                                setJObject(_inModel.Data, "Appointment2.Place", place);
+                            }
 
                             _orchardServices.ContentManager.Create(content, VersionOptions.Draft);
                             var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(_inModel));
@@ -228,10 +282,11 @@ namespace Orchard.Schedule.Controllers
                     if (content != null)
                     {
                         ScheduleEditApiViewMode _inModel = (ScheduleEditApiViewMode)inModel.Clone();
-                        if (_inModel.Data["Appointment2.Place"] != null)
-                            _inModel.Data["Appointment2.Place"] = place;
+                        string key_place = contentType + ".Place";
+                        if (_inModel.Data[key_place] != null)
+                            _inModel.Data[key_place] = place;
                         else
-                            _inModel.Data.Add(new JProperty("Appointment2.Place", place));
+                            _inModel.Data.Add(new JProperty(key_place, place));
 
                         _orchardServices.ContentManager.Create(content, VersionOptions.Draft);
                         var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(inModel));
@@ -290,7 +345,7 @@ namespace Orchard.Schedule.Controllers
             if (!_orchardServices.Authorizer.Authorize(Permissions.ManageSchedules, T("Couldn't delete schedule")))
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't delete schedule" });
 
-            var schedule = _orchardServices.ContentManager.Get(inModel.Id);
+            var schedule = _orchardServices.ContentManager.Get(inModel.Id, VersionOptions.Latest);
             if (schedule == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
@@ -375,8 +430,16 @@ namespace Orchard.Schedule.Controllers
 
         private IEnumerable<DateTime> EachDay(DateTime from, DateTime thru)
         {
-            for (var day = from.Date; day.Date <= thru.Date; day = day.AddDays(1))
+            for (var day = from; day.Date <= thru.Date; day = day.AddDays(1))
                 yield return day;
+        }
+
+        private void setJObject(JObject obj, string key, object value)
+        {
+            if (obj[key] != null)
+                obj.Remove(key);
+            
+            obj.Add(new JProperty(key, value));
         }
     }
 }

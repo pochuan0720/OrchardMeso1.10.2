@@ -170,6 +170,31 @@ namespace Orchard.Core.Common.Handlers
 
                     return true;
                 }
+                else if (type.Equals("Orchard.ArchiveLater.ViewModels.ArchiveLaterViewModel") && root[prefix] != null)
+                {
+                    var data = root[prefix];
+
+                    if (!string.IsNullOrEmpty(data.ToString()))
+                    {
+                        DateTime dt = (DateTime)data;
+
+                        _model.ArchiveLater = true;
+
+                        string date = _dateLocalizationServices.ConvertToLocalizedDateString(dt, new DateLocalizationOptions());// dt.Date.ToString("MM/dd/yyyy");
+                        string time = _dateLocalizationServices.ConvertToLocalizedTimeString(dt, new DateLocalizationOptions());// dt.Date.ToString("h:mm", new CultureInfo("en-US"));
+                        _model.Editor = new DateTimeEditor()
+                        {
+                            Date = date,
+                            Time = time,
+                        };
+                    }
+                    else
+                    {
+                        _model.ArchiveLater = false;
+                    }
+
+                    return true;
+                }
             }
 
             return false;

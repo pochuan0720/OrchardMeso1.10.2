@@ -12,8 +12,11 @@ namespace Orchard.Schedule.Handlers
 {
     public class UpdateModelHandler : Orchard.Core.Common.Handlers.UpdateModelHandler, IUpdateModelHandler
     {
-        public UpdateModelHandler(IDateLocalizationServices dateLocalizationServices, IHttpContextAccessor httpContextAccessor) : base(dateLocalizationServices, httpContextAccessor)
+        private readonly IWorkContextAccessor _accessor;
+
+        public UpdateModelHandler(IDateLocalizationServices dateLocalizationServices, IHttpContextAccessor httpContextAccessor, IWorkContextAccessor accessor) : base(dateLocalizationServices, httpContextAccessor)
         {
+            _accessor = accessor;
         }
 
         public override bool TryUpdateModel<TModel>(TModel model, string prefix, string[] includeProperties, string[] excludeProperties)
@@ -24,10 +27,10 @@ namespace Orchard.Schedule.Handlers
                 {
                     dynamic _model = model;
                     DateTime start = (DateTime)root["StartDate"];
-                    _model.StartDate = _dateLocalizationServices.ConvertToLocalizedDateString(start, new DateLocalizationOptions() { EnableTimeZoneConversion = false });
+                    _model.StartDate = _dateLocalizationServices.ConvertToLocalizedString(start, ParseFormat, new DateLocalizationOptions() { EnableTimeZoneConversion = false });
                     _model.StartTime = _dateLocalizationServices.ConvertToLocalizedTimeString(start, new DateLocalizationOptions() { EnableTimeZoneConversion = false });
                     DateTime end = (DateTime)root["EndDate"];
-                    _model.EndDate = _dateLocalizationServices.ConvertToLocalizedDateString(end, new DateLocalizationOptions() { EnableTimeZoneConversion = false });
+                    _model.EndDate = _dateLocalizationServices.ConvertToLocalizedString(end, ParseFormat, new DateLocalizationOptions() { EnableTimeZoneConversion = false });
                     _model.EndTime = _dateLocalizationServices.ConvertToLocalizedTimeString(end, new DateLocalizationOptions() { EnableTimeZoneConversion = false });
                     return true;
                 }
@@ -44,6 +47,30 @@ namespace Orchard.Schedule.Handlers
         {
             base.SetData(_root);
             return this;
+        }
+
+        private string _dateFormat;
+        private string DateFormat
+        {
+            get { return _dateFormat ?? (_dateFormat = _accessor.GetContext().CurrentSite.As<ScheduleSettingsPart>().DateFormat); }
+        }
+
+        private string ParseFormat
+        {
+            get
+            {
+                switch (DateFormat)
+                {
+                    case "DMY":
+                        return "dd/MM/yyyy";
+                    case "MDY":
+                        return "MM/dd/yyyy";
+                    case "YMD":
+                        return "yyyy/MM/dd";
+                    default:
+                        return "MM/dd/yyyy";
+                }
+            }
         }
     }
 }

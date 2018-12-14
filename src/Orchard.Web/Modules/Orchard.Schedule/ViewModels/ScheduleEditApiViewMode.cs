@@ -11,7 +11,7 @@ namespace Orchard.Schedule.ViewModels
         [Required]
         public string ContentType { get; set; }
         public string[] Places { get; set; }
-        public bool IsDaily { get; set; }
+        public bool? IsDaily { get; set; }
 
         public object Clone()
         {

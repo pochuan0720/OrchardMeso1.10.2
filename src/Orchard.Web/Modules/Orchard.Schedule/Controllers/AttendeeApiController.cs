@@ -23,6 +23,10 @@ using Orchard.Projections.Services;
 using Orchard.Roles.Models;
 using Orchard.Roles.Services;
 using Orchard.Projections.Models;
+using Orchard.Core.Containers.Models;
+using Orchard.Localization.Services;
+using Orchard.Localization.Models;
+using Orchard.Users.Models;
 
 namespace Orchard.Schedule.Controllers
 {
@@ -38,6 +42,8 @@ namespace Orchard.Schedule.Controllers
         private readonly IUpdateModelHandler _updateModelHandler;
         private readonly IAuthenticationService _authenticationService;
         private readonly IProjectionManager _projectionManager;
+        private readonly IDateLocalizationServices _dateLocalizationServices;
+        private readonly IWorkContextAccessor _accessor;
         private static DateTime UnixEpochTime = new DateTime(1970, 1, 1);
 
 
@@ -51,7 +57,9 @@ namespace Orchard.Schedule.Controllers
             IShapeFactory shapeFactory,
             IUpdateModelHandler updateModelHandler,
             IAuthenticationService authenticationService,
-            IProjectionManager projectionManager
+            IProjectionManager projectionManager,
+            IDateLocalizationServices dateLocalizationServices,
+            IWorkContextAccessor accessor
             )
         {
             _roleService = roleService;
@@ -63,6 +71,8 @@ namespace Orchard.Schedule.Controllers
             _updateModelHandler = updateModelHandler;
             _authenticationService = authenticationService;
             _projectionManager = projectionManager;
+            _dateLocalizationServices = dateLocalizationServices;
+            _accessor = accessor;
             Logger = NullLogger.Instance;
             T = NullLocalizer.Instance;
             Shape = shapeFactory;
@@ -110,7 +120,7 @@ namespace Orchard.Schedule.Controllers
             if (content == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
-            var contentModel = _orchardServices.ContentManager.BuildEditor(content);
+            //var contentModel = _orchardServices.ContentManager.BuildEditor(content);
 
             CommonPart common = content.As<CommonPart>();
             IUser user = common.Owner;
@@ -128,14 +138,47 @@ namespace Orchard.Schedule.Controllers
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
             }
 
-            if (!_orchardServices.Authorizer.Authorize(Permissions.ManageSchedules, T("Not authorized to manage content")))
-                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage content" });
+            //if (!_orchardServices.Authorizer.Authorize(Permissions.ManageSchedules, T("Not authorized to manage content")))
+            //    return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage content" });
 
             string contentType = GetContentType("Edit", ref inModel);
 
             if (contentType == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage content" });
 
+            var containerItem = _orchardServices.ContentManager.Get(inModel.ContainerId, VersionOptions.Published);
+
+            if (containerItem == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+
+
+            IUser user = _authenticationService.GetAuthenticatedUser();
+
+            // 1. 檢查是否可參加(一年允許取消六次)
+            int cancelCount = _orchardServices.ContentManager.Query(VersionOptions.Published, inModel.ContentType + "Cancel").List()
+                .Where(i => i.As<CommonPart>().Owner.Id == user.Id && ((DateTime)i.As<CommonPart>().PublishedUtc).ToString("yyyy").Equals(DateTime.UtcNow.ToString("2019"))).Count();
+
+            if (cancelCount > 6)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.Forbidden) });
+
+            // 2. 檢查剩餘可參與額度
+            //Get Scheduler model
+            SchedulePart schedule = containerItem.As<SchedulePart>();
+            ScheduleApiViewMode outModel = _scheduleLayoutService.GetOccurrenceViewModel(new ScheduleOccurrence(schedule, schedule.StartDate), new ScheduleData(containerItem, Url, _slugService, _orchardServices));
+            int volunteerQuota = (int)outModel.Data[containerItem.ContentType + ".VolunteerQuota"];
+            if (outModel.Attendee.Length >= volunteerQuota)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.Forbidden) });
+
+            // 3. 檢查是否已經參加
+
+            foreach ( object obj in outModel.Attendee)
+            {
+                JObject attendee = JObject.FromObject(obj);
+                string userName = attendee["User"]["UserName"].ToString();
+                if(userName.Equals(user.UserName))
+                    return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Conflict.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.Conflict) });
+            }
 
             var content = _orchardServices.ContentManager.New<ContentPart>(contentType);
 
@@ -184,13 +227,15 @@ namespace Orchard.Schedule.Controllers
             if (inModel == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 
-            var content = _orchardServices.ContentManager.Get(inModel.Id);
+            var content = _orchardServices.ContentManager.Get(inModel.Id, VersionOptions.Latest);
 
             if (content == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
-            if (!_orchardServices.Authorizer.Authorize(Permissions.ManageSchedules, content, T("Couldn't delete content")))
-                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't delete content" });
+            bool other = _orchardServices.Authorizer.Authorize(Orchard.Core.Contents.Permissions.PublishContent, content, T("Couldn't Unpublish content"));
+
+            if (!_orchardServices.Authorizer.Authorize(Orchard.Core.Contents.Permissions.PublishContent, content, T("Couldn't Unpublish content")))
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't edit content" });
 
             /*string contentType = GetContentType("Delete", ref inModel);
             if (!string.IsNullOrEmpty(contentType) && content.ContentType.Equals(contentType))
@@ -205,7 +250,92 @@ namespace Orchard.Schedule.Controllers
             {
                 _orchardServices.ContentManager.Unpublish(content);
                 _orchardServices.Notifier.Information(T("content Unpublished"));
-                return Ok(new ResultViewModel { Content = new { Id = content.Id }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+                //return Ok(new ResultViewModel { Content = new { Id = content.Id }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+                try
+                {
+                    //New a Cancel Content
+                    string cancelContentType = inModel.ContentType + "Cancel";
+                    var calcelItem = _orchardServices.ContentManager.New<ContentPart>(cancelContentType);
+
+                    if (calcelItem != null)
+                    {
+                        CommonPart common = content.As<CommonPart>();
+                        SchedulePart schedulePart = common.Container.As<SchedulePart>();
+                        var scheduleModel = _orchardServices.ContentManager.BuildEditor(schedulePart);
+                        JObject scheduleObject = Core.Common.Handlers.UpdateModelHandler.GetData(scheduleModel);
+                        ScheduleOccurrence occurrence = new ScheduleOccurrence(schedulePart, schedulePart.StartDate);
+                        IUser user = common.Owner;
+
+                        _orchardServices.ContentManager.Create(calcelItem, VersionOptions.Draft);
+                        AttendeeCancelViewMode cancelModel = new AttendeeCancelViewMode();
+                        string people = common.Container.As<ContainerPart>().ItemCount + "/" + scheduleObject[schedulePart.ContentItem.ContentType + ".VolunteerQuota"].ToString();
+                        string place = scheduleObject[schedulePart.ContentItem.ContentType + ".Place"].ToString();
+                        if (scheduleObject[schedulePart.ContentItem.ContentType + ".Item"] != null)
+                        {
+                            string item = scheduleObject[schedulePart.ContentItem.ContentType + ".Item"].ToString();
+                            if(item.Equals("帶隊解說") || item.Equals("各項活動支援")) //申請單位 XX(單位名稱) X/X人
+                            {
+                                cancelModel.Title = scheduleObject[schedulePart.ContentItem.ContentType + ".ApplyUnit"].ToString() +" " + people;
+                            }
+                            else //XX(地區)駐站 X/X人(保育全部套用此規則)
+                                cancelModel.Title = place + " 駐站 " + people;
+                        }
+                        else
+                            cancelModel.Title = schedulePart.Title;
+
+                        cancelModel.Owner = user.UserName;
+                        JObject obj = new JObject();
+                        var userModel = _orchardServices.ContentManager.BuildEditor(user);
+                        JObject userObject = Core.Common.Handlers.UpdateModelHandler.GetData(userModel);
+                        obj.Add(new JProperty(cancelContentType + ".AttendeeId", content.Id));
+                        obj.Add(new JProperty(cancelContentType + ".Name", userObject["User.Name"]));
+                        obj.Add(new JProperty(cancelContentType + ".Email", user.Email));
+                        obj.Add(new JProperty(cancelContentType + ".Place", place));
+                        obj.Add(new JProperty(cancelContentType + ".StartDate", _dateLocalizationServices.ConvertToLocalizedString(occurrence.Start, ParseFormat, new DateLocalizationOptions())));
+                        obj.Add(new JProperty(cancelContentType + ".EndDate", _dateLocalizationServices.ConvertToLocalizedString(occurrence.End, ParseFormat, new DateLocalizationOptions())));
+
+                        //mailto list
+                        IList<string> roles = user.ContentItem.As<UserRolesPart>().Roles;
+                        var users = _orchardServices.ContentManager.Query<UserPart, UserPartRecord>().List();
+                        IEnumerable<string> alluserEmails = null;
+                        IEnumerable<string> allAdminEmails = null;
+                        foreach (string role in roles)
+                        {
+                            IEnumerable<string> userEmails = null;
+                            userEmails = users.Where(i => i.ContentItem.As<UserRolesPart>().Roles.Contains(role)).Select(x => x.Email);
+                            if (alluserEmails == null)
+                                alluserEmails = userEmails;
+                            else
+                                alluserEmails = alluserEmails.Select(x => x).Concat(userEmails.Select(y => y));
+
+                            IEnumerable<string> adminEmails = null;
+                            adminEmails = users.Where(i => i.ContentItem.As<UserRolesPart>().Roles.Contains(role + "管理員")).Select(x => x.Email);
+                            if (allAdminEmails == null)
+                                allAdminEmails = adminEmails;
+                            else
+                                allAdminEmails = allAdminEmails.Select(x => x).Concat(adminEmails.Select(y => y));
+                        }
+
+                        var mailTo = String.Join(";", alluserEmails.ToList().ToArray());
+                        var mailToAdmin = String.Join(";", allAdminEmails.ToList().ToArray());
+                        obj.Add(new JProperty(cancelContentType + ".MailTo", mailTo));
+                        obj.Add(new JProperty(cancelContentType + ".MailToAdmin", mailToAdmin));
+                        cancelModel.Data = obj;
+
+
+
+                        var editorShape = _orchardServices.ContentManager.UpdateEditor(calcelItem, _updateModelHandler.SetData(cancelModel));
+                        _orchardServices.ContentManager.Publish(calcelItem.ContentItem);
+
+
+                        return Ok(new ResultViewModel { Content = new { Id = content.Id }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+                    }
+                } catch(Exception e)
+                {
+                    _orchardServices.ContentManager.Publish(content);
+                    _orchardServices.Notifier.Information(T("content Published"));
+                    return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.InternalServerError.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.InternalServerError) });
+                }
             }
 
             return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
@@ -235,7 +365,7 @@ namespace Orchard.Schedule.Controllers
                         if (possessedName.StartsWith("View_" + inModel.Query.Name))
                         {
                             queryName = possessedName.Substring("View_".Length);
-                            IEnumerable<ContentItem> contentItems = _projectionManager.GetContentItems(new QueryModel { Name = queryName });
+                            IEnumerable<ContentItem> contentItems = _projectionManager.GetContentItems( new QueryModel { Name = queryName });
                             if (allContentItems == null)
                                 allContentItems = contentItems;
                             else
@@ -253,7 +383,12 @@ namespace Orchard.Schedule.Controllers
             //IEnumerable<ContentItem> contentItems = _containerService.GetContentItems((int)inModel["ContainerId"]);
 
             //contentItems = contentItems.Select(c => c.As<CommonPart>().Container.ContentItem).Where(x => x.As<CommonPart>().Owner.Id == user.Id);
-            allContentItems = allContentItems.Select(c => c.As<CommonPart>()).Where(x => x.Owner.Id == user.Id).Select(c => c.Container.ContentItem);
+
+            allContentItems = allContentItems.Select(c => c.As<CommonPart>()).Where(x => x.Owner.Id == user.Id && x.Container != null).Select(c => c.Container.ContentItem);
+            if (allContentItems == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+
             allContentItems = allContentItems.GroupBy(x => x.Id).Select(g => g.First());
             /*IList<object> list = new List<object>();
             foreach (ContentItem item in contentItems)
@@ -342,6 +477,8 @@ namespace Orchard.Schedule.Controllers
 
 
             return Ok(new ResultViewModel { Content = occurrences, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+
+
         }
         private string GetContentType(string prefix, ref AttendeeEditApiViewMode inModel)
         {
@@ -393,6 +530,35 @@ namespace Orchard.Schedule.Controllers
             else
                 return inModel.ContentType;
         }
+
+
+
+        private string _dateFormat;
+        private string DateFormat
+        {
+            get { return _dateFormat ?? (_dateFormat = _accessor.GetContext().CurrentSite.As<ScheduleSettingsPart>().DateFormat); }
+        }
+
+        private string ParseFormat
+        {
+            get
+            {
+                switch (DateFormat)
+                {
+                    case "DMY":
+                        return "dd/MM/yyyy";
+                    case "MDY":
+                        return "MM/dd/yyyy";
+                    case "YMD":
+                        return "yyyy/MM/dd";
+                    default:
+                        return "MM/dd/yyyy";
+                }
+            }
+        }
+
+
     }
+
 
 }

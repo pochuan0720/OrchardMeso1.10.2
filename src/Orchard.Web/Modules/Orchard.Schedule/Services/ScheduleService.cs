@@ -97,7 +97,7 @@ namespace Orchard.Schedule.Services
 
         public void RemoveScheduleItem(int id)
         {
-            var item = _services.ContentManager.Get(id);
+            var item = _services.ContentManager.Get(id, VersionOptions.Latest);
             if (item.Has<SchedulePart>() && _services.Authorizer.Authorize(Core.Contents.Permissions.DeleteContent, item))
             {
                 _services.ContentManager.Remove(item);
