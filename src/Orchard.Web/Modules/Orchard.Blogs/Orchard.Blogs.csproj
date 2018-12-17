@@ -106,17 +106,13 @@
   <ItemGroup>
     <Compile Include="AdminMenu.cs" />
     <Compile Include="Commands\BlogWidgetCommands.cs" />
-    <Compile Include="Controllers\BlogApiController.cs" />
-    <Compile Include="Controllers\BlogPostApiController.cs" />
     <Compile Include="Controllers\RemoteBlogPublishingController.cs" />
     <Compile Include="Drivers\BlogArchivesPartDriver.cs" />
     <Compile Include="Drivers\RemoteBlogPublishingDriver.cs" />
     <Compile Include="Drivers\RecentBlogPostsPartDriver.cs" />
     <Compile Include="Feeds\BlogPartFeedItemBuilder.cs" />
     <Compile Include="Handlers\BlogArchivesPartHandler.cs" />
-    <Compile Include="Handlers\IUpdateModelHandler.cs" />
     <Compile Include="Handlers\RecentBlogPostsPartHandler.cs" />
-    <Compile Include="Handlers\UpdateModelHandler.cs" />
     <Compile Include="Models\BlogArchivesPart.cs" />
     <Compile Include="Models\BlogArchivesPartRecord.cs" />
     <Compile Include="Models\RecentBlogPostsPart.cs" />
@@ -135,8 +131,6 @@
     <Compile Include="Handlers\BlogPartArchiveHandler.cs" />
     <Compile Include="Models\BlogPartArchiveRecord.cs" />
     <Compile Include="Permissions.cs" />
-    <Compile Include="Routing\BlogPostApiRoutes.cs" />
-    <Compile Include="Routing\BlogApiRoutes.cs" />
     <Compile Include="Routing\ArchiveConstraint.cs" />
     <Compile Include="Routing\IArchiveConstraint.cs" />
     <Compile Include="Routing\RsdConstraint.cs" />
@@ -161,9 +155,7 @@
     <Compile Include="ViewModels\BlogArchivesViewModel.cs" />
     <Compile Include="ViewModels\BlogPostEditApiViewModel.cs" />
     <Compile Include="ViewModels\BlogEditApiViewModel.cs" />
-    <Compile Include="ViewModels\BlogPostsIndexApiViewModel.cs" />
     <Compile Include="ViewModels\RecentBlogPostsViewModel.cs" />
-    <Compile Include="ViewModels\BlogsIndexApiViewModel.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\Admin\images\draft.gif" />

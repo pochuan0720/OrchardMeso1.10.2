@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using Orchard.Blogs.Handlers;
 using Orchard.Blogs.Models;
 using Orchard.ContentManagement;
+using Orchard.Core.Common.Handlers;
 using Orchard.Core.Common.Models;
 using Orchard.Data;
 using Orchard.Tasks.Scheduling;
@@ -87,8 +89,8 @@ namespace Orchard.Blogs.Services {
         private BlogPostPart getData(BlogPostPart part)
         {
             var model = _contentManager.BuildEditor(part);
-            part.Data = UpdateModelHandler.GetData(model);
-            return part;
+            JObject obj = UpdateModelHandler.GetData(JObject.FromObject(part), model);
+            return obj.ToObject<BlogPostPart>();
         }
 
         public IEnumerable<KeyValuePair<ArchiveData, int>> GetArchives(BlogPart blogPart) {

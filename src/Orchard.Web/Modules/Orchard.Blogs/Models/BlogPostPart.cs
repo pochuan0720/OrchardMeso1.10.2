@@ -65,8 +65,5 @@ namespace Orchard.Blogs.Models {
         {
             get { return PublishedUtc == null ? PublishedUtc : ((DateTime)PublishedUtc).ToLocalTime(); }
         }*/
-
-        [JsonProperty]
-        public object Data { get; set; }
     }
 }

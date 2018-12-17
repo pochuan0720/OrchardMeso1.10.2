@@ -108,7 +108,6 @@
     <Compile Include="Activities\UserTaskActivity.cs" />
     <Compile Include="AdminMenu.cs" />
     <Compile Include="Commands\RoleCommands.cs" />
-    <Compile Include="Controllers\AdminApiController.cs" />
     <Compile Include="Controllers\AdminController.cs" />
     <Compile Include="Drivers\UserTaskDriver.cs" />
     <Compile Include="Events\IRoleEventHandler.cs" />
@@ -140,12 +139,10 @@
     <Compile Include="Permissions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Conditions\RoleCondition.cs" />
-    <Compile Include="Routing\ApiRoutes.cs" />
     <Compile Include="Services\IRoleService.cs" />
     <Compile Include="Services\RolesBasedAuthorizationService.cs" />
     <Compile Include="Services\RoleService.cs" />
     <Compile Include="ViewModels\RoleCreateViewModel.cs" />
-    <Compile Include="ViewModels\RoleEditApiViewModel.cs" />
     <Compile Include="ViewModels\RoleEditViewModel.cs" />
     <Compile Include="ViewModels\RolesIndexViewModel.cs" />
     <Compile Include="ViewModels\UserRolesViewModel.cs" />

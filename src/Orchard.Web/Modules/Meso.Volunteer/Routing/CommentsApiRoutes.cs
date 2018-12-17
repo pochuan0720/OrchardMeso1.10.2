@@ -4,16 +4,16 @@ using Orchard.WebApi.Routes;
 
 namespace Meso.Volunteer.Routing
 {
-    public class ReportApiRoutes : IHttpRouteProvider
+    public class CommentsApiRoutes : IHttpRouteProvider
     {
         public IEnumerable<Orchard.Mvc.Routes.RouteDescriptor> GetRoutes()
         {
             return new[]{
-                  new HttpRouteDescriptor {
-                        Name = "VolunteerReportApiRoute",
+                   new HttpRouteDescriptor {
+                        Name = "VolunteerCommentApiRoute",
                         Priority = 20,
-                        RouteTemplate = "volunteer/api/reports/{action}",
-                        Defaults = new  { area = "Meso.Volunteer", controller = "ReportApi"}
+                        RouteTemplate = "volunteer/api/comments/{action}",
+                        Defaults = new  { area = "Meso.Volunteer", controller = "CommentApi"}
                     }
             };
         }

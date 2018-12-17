@@ -175,16 +175,12 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Controllers\AttendeeApiController.cs" />
-    <Compile Include="Controllers\CalendarApiController.cs" />
     <Compile Include="Controllers\CalendarLayoutController.cs" />
     <Compile Include="Controllers\ScheduleDetailController.cs" />
     <Compile Include="Drivers\SchedulePartDriver.cs" />
     <Compile Include="Drivers\ScheduleSettingsPartDriver.cs" />
-    <Compile Include="Handlers\IUpdateModelHandler.cs" />
     <Compile Include="Handlers\ScheduleHandler.cs" />
     <Compile Include="Handlers\ScheduleSettingsHandler.cs" />
-    <Compile Include="Handlers\UpdateModelHandler.cs" />
     <Compile Include="Permissions.cs" />
     <Compile Include="Providers\DateProviders\DateOffsetProvider.cs" />
     <Compile Include="Models\ScheduleData.cs" />
@@ -193,8 +189,6 @@
     <Compile Include="Providers\DateProviders\TakeNthOfGroupProvider.cs" />
     <Compile Include="Providers\Layouts\UpcomingLayout.cs" />
     <Compile Include="Providers\Layouts\UpcomingLayoutForms.cs" />
-    <Compile Include="Routes\AttendeeApiRoutes.cs" />
-    <Compile Include="Routes\CalendarApiRoutes.cs" />
     <Compile Include="Routes\UpcomingLayoutRoutes.cs" />
     <Compile Include="Routes\CalendarLayoutRoutes.cs" />
     <Compile Include="ResourceManifests\CalendarLayoutResourceManifest.cs" />
@@ -237,11 +231,6 @@
     <Compile Include="ViewModels\AttendeeCancelViewMode.cs" />
     <Compile Include="ViewModels\EditScheduleSettingsViewModel.cs" />
     <Compile Include="ViewModels\EditScheduleViewModel.cs" />
-    <Compile Include="ViewModels\AttendeeApiViewMode.cs" />
-    <Compile Include="ViewModels\ScheduleApiViewMode.cs" />
-    <Compile Include="ViewModels\AttendeeEditApiViewMode.cs" />
-    <Compile Include="ViewModels\ScheduleEditApiViewMode.cs" />
-    <Compile Include="ViewModels\SchedulesIndexApiViewMode.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Views\EditorTemplates\Parts\Schedule.cshtml" />

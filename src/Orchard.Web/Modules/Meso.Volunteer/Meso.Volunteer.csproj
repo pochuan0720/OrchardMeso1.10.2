@@ -50,6 +50,10 @@
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Net.Http.Formatting, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\packages\Microsoft.AspNet.WebApi.Client.5.2.3\lib\net45\System.Net.Http.Formatting.dll</HintPath>
+    </Reference>
     <Reference Include="System.Web.ApplicationServices" />
     <Reference Include="System.Web.DynamicData" />
     <Reference Include="System.Web.Entity" />
@@ -76,9 +80,34 @@
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Controllers\ReportsApiController.cs" />
+    <Compile Include="Controllers\AccountApiController .cs" />
+    <Compile Include="Controllers\AttendeeApiController.cs" />
+    <Compile Include="Controllers\CalendarApiController.cs" />
+    <Compile Include="Controllers\CommentApiController.cs" />
+    <Compile Include="Controllers\MediaApiController.cs" />
+    <Compile Include="Controllers\RoleApiController.cs" />
+    <Compile Include="Controllers\NewsApiController.cs" />
+    <Compile Include="Controllers\NewsPostApiController.cs" />
+    <Compile Include="Controllers\ReportApiController.cs" />
+    <Compile Include="Handlers\INewsUpdateModelHandler.cs" />
+    <Compile Include="Handlers\IMediaUpdateModelHandler.cs" />
+    <Compile Include="Handlers\ICalendarUpdateModelHandler.cs" />
+    <Compile Include="Handlers\ICommentUpdateModelHandler.cs" />
+    <Compile Include="Handlers\NewsUpdateModelHandler.cs" />
+    <Compile Include="Handlers\MediaUpdateModelHandler.cs" />
+    <Compile Include="Handlers\CalendarUpdateModelHandler.cs" />
+    <Compile Include="Handlers\CommentUpdateModelHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Routing\AttendeeApiRoutes.cs" />
+    <Compile Include="Routing\CalendarApiRoutes.cs" />
+    <Compile Include="Routing\CommentsApiRoutes.cs" />
+    <Compile Include="Routing\MediaApiRoutes.cs" />
+    <Compile Include="Routing\RoleApiRoutes.cs" />
+    <Compile Include="Routing\UsersApiRoutes.cs" />
+    <Compile Include="Routing\NewsApiRoutes.cs" />
     <Compile Include="Routing\ReportApiRoutes.cs" />
+    <Compile Include="Services\CalendarService.cs" />
+    <Compile Include="Services\ICalendarService.cs" />
     <Compile Include="ViewModels\VolunteerApiViewMode.cs" />
     <Compile Include="ViewModels\VolunteerSummaryApiViewModel.cs" />
   </ItemGroup>
@@ -115,9 +144,25 @@
       <Project>{66fccd76-2761-47e3-8d11-b45d0001ddaa}</Project>
       <Name>Orchard.Autoroute</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Orchard.Blogs\Orchard.Blogs.csproj">
+      <Project>{63fbd4d9-e1da-4a7b-aa6a-d6074fe50867}</Project>
+      <Name>Orchard.Blogs</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Orchard.Comments\Orchard.Comments.csproj">
+      <Project>{14c049fd-b35b-415a-a824-87f26b26e7fd}</Project>
+      <Name>Orchard.Comments</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Orchard.MediaLibrary\Orchard.MediaLibrary.csproj">
+      <Project>{73a7688a-5bd3-4f7e-adfa-ce36c5a10e3b}</Project>
+      <Name>Orchard.MediaLibrary</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Orchard.Projections\Orchard.Projections.csproj">
       <Project>{5531e894-d259-45a3-aa61-26dbe720c1ce}</Project>
       <Name>Orchard.Projections</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Orchard.PublishLater\Orchard.PublishLater.csproj">
+      <Project>{c889167c-e52c-4a65-a419-224b3d1b957d}</Project>
+      <Name>Orchard.PublishLater</Name>
     </ProjectReference>
     <ProjectReference Include="..\Orchard.Roles\Orchard.Roles.csproj">
       <Project>{d10ad48f-407d-4db5-a328-173ec7cb010f}</Project>
@@ -126,6 +171,10 @@
     <ProjectReference Include="..\Orchard.Schedule\Orchard.Schedule.csproj">
       <Project>{399b3bda-fd1b-4af7-aab9-a19c18723f5c}</Project>
       <Name>Orchard.Schedule</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Orchard.Users\Orchard.Users.csproj">
+      <Project>{79aed36e-abd0-4747-93d3-8722b042454b}</Project>
+      <Name>Orchard.Users</Name>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup>

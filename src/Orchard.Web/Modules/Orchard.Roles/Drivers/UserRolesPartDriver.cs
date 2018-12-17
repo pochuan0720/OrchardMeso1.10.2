@@ -75,7 +75,7 @@ namespace Orchard.Roles.Drivers {
             if (updater.TryUpdateModel(model, Prefix, null, null)) {
                 var currentUserRoleRecords = _userRolesRepository.Fetch(x => x.UserId == model.User.Id).ToArray();
                 var currentRoleRecords = currentUserRoleRecords.Select(x => x.Role);
-                var targetRoleRecords = model.Roles.Where(x => x.Granted).Select(x => _roleService.GetRole(x.RoleId)).ToArray();
+                var targetRoleRecords = model.Roles.Where(x => x.Granted).Select(x => x.RoleId>0 ? _roleService.GetRole(x.RoleId) : _roleService.GetRoleByName(x.Name)).ToArray();
                 foreach (var addingRole in targetRoleRecords.Where(x => !currentRoleRecords.Contains(x))) {
                     _notifier.Warning(T("Adding role {0} to user {1}", addingRole.Name, userRolesPart.As<IUser>().UserName));
                     _userRolesRepository.Create(new UserRolesPartRecord { UserId = model.User.Id, Role = addingRole });

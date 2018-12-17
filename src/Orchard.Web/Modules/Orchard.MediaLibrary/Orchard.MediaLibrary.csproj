@@ -135,13 +135,10 @@
     </Content>
     <Content Include="Scripts\Web.config" />
     <Content Include="Styles\Web.config" />
-    <Compile Include="Controllers\ClientStorageApiController.cs" />
     <Compile Include="Drivers\VectorImagePartDriver.cs" />
     <Compile Include="Extensions\MediaMetaDataExtensions.cs" />
     <Compile Include="Factories\VectorImageFactory.cs" />
-    <Compile Include="Handlers\IUpdateModelHandler.cs" />
     <Compile Include="Handlers\MediaLibrarySettingsPartHandler.cs" />
-    <Compile Include="Handlers\UpdateModelHandler.cs" />
     <Compile Include="Implementation\DefaultMediaUsername.cs" />
     <Compile Include="Models\MediaLibrarySettingsPart.cs" />
     <Compile Include="Models\VectorImagePart.cs" />
@@ -213,7 +210,6 @@
     <Compile Include="Providers\OEmbedMenu.cs" />
     <Compile Include="Providers\WebSearchMenu.cs" />
     <Compile Include="ResourceManifest.cs" />
-    <Compile Include="Routing\ApiRoutes.cs" />
     <Compile Include="Security\MediaAuthorizationEventHandler.cs" />
     <Compile Include="Services\IMediaLibraryService.cs" />
     <Compile Include="Providers\IMediaFolderProvider.cs" />
@@ -227,7 +223,6 @@
     <Compile Include="ViewModels\ImportMediaViewModel.cs" />
     <Compile Include="ViewModels\MediaLibraryPickerFieldViewModel.cs" />
     <Compile Include="ViewModels\MediaManagerEditApiViewModel.cs" />
-    <Compile Include="ViewModels\MediaManagerMediaItemsApiViewModel.cs" />
     <Compile Include="ViewModels\MediaManagerMediaItemsViewModel.cs" />
     <Compile Include="ViewModels\MediaManagerFolderCreateViewModel.cs" />
     <Compile Include="ViewModels\MediaManagerFolderEditViewModel.cs" />
