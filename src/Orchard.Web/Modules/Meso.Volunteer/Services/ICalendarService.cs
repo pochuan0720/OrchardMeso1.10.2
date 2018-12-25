@@ -5,6 +5,7 @@ using Orchard.Projections.Models;
 using System;
 using System.Collections.Generic;
 using Meso.Volunteer.ViewModels;
+using Newtonsoft.Json.Linq;
 
 namespace Meso.Volunteer.Services {
     public interface ICalendarService : IDependency {
@@ -14,5 +15,7 @@ namespace Meso.Volunteer.Services {
         object GetOccurrenceViewModel(ScheduleOccurrence scheduleEvent, ScheduleData scheduleData, bool withAttendee = true);
         IEnumerable<ContentItem> GetProjectionContentItems(QueryModel query);
         IEnumerable<ContentItem> GetProjectionContentItems(int queryId);
+
+        void Notification(ContentItem content, string contentType, JObject obj=null);
     }
 }

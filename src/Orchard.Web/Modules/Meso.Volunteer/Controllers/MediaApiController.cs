@@ -257,17 +257,137 @@ namespace Meso.Volunteer.Controllers {
         }
 
         [HttpPost]
+        public async Task<IHttpActionResult> replace(int id)
+        {
+            if (!Services.Authorizer.Authorize(Orchard.MediaLibrary.Permissions.ManageOwnMedia))
+            {
+                return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "" });
+            }
+
+            var replaceMedia = Services.ContentManager.Get<MediaPart>(id);
+            if (replaceMedia == null)
+                return NotFound();
+
+
+            // Check permission
+            if (!Services.Authorizer.Authorize(Orchard.MediaLibrary.Permissions.ManageMediaContent) && !_mediaLibraryService.CanManageMediaFolder(replaceMedia.FolderPath))
+            {
+                return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "" });
+            }
+
+            var statuses = new List<object>();
+            var settings = Services.WorkContext.CurrentSite.As<MediaLibrarySettingsPart>();
+            var allowedExtensions = (settings.UploadAllowedFileTypeWhitelist ?? "")
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(x => x.StartsWith("."));
+
+            // Read the form data.
+            MultipartMemoryStreamProvider multipartMemoryStreamProvider = null;
+            try
+            {
+                multipartMemoryStreamProvider = await Request.Content.ReadAsMultipartAsync();
+            }
+            catch (Exception e)
+            {
+                return InternalServerError();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.InternalServerError.ToString("d"), Message = e.Message });
+            }
+            // Loop through each file in the request
+            foreach (HttpContent content in multipartMemoryStreamProvider.Contents)
+            {
+                // Pointer to file
+
+                string name = content.Headers.ContentDisposition.Name;
+                string filename = string.IsNullOrEmpty(content.Headers.ContentDisposition.FileName) ? null : content.Headers.ContentDisposition.FileName.Replace("\"", "");
+                filename = _mediaLibraryService.GetUniqueFilename(replaceMedia.FolderPath, filename);
+                if (!string.IsNullOrEmpty(filename))
+                {
+                    // if the file has been pasted, provide a default name
+                    if (content.Headers.ContentType.MediaType.Equals("image/png", StringComparison.InvariantCultureIgnoreCase) && !filename.EndsWith(".png", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        filename = "clipboard.png";
+                    }
+
+                    // skip file if the allowed extensions is defined and doesn't match
+                    if (allowedExtensions.Any())
+                    {
+                        if (!allowedExtensions.Any(e => filename.EndsWith(e, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            statuses.Add(new
+                            {
+                                error = T("This file type is not allowed: {0}", Path.GetExtension(filename)).Text,
+                                progress = 1.0,
+                            });
+                            continue;
+                        }
+                    }
+                }
+
+
+                try
+                {
+                    using (Stream stream = await content.ReadAsStreamAsync())
+                    {
+                        //byte[] bytes = new byte[stream.Length];
+                        //stream.Read(bytes, 0, bytes.Length);
+
+                        if (!string.IsNullOrEmpty(filename))
+                        {
+                            var mimeType = _mimeTypeProvider.GetMimeType(filename);
+
+                            try
+                            {
+                                _mediaLibraryService.DeleteFile(replaceMedia.FolderPath, replaceMedia.FileName);
+                            } catch(Exception ex)
+                            {
+
+                            }
+                            _mediaLibraryService.UploadMediaFile(replaceMedia.FolderPath, filename, stream);
+                            replaceMedia.FileName = filename;
+                            replaceMedia.MimeType = mimeType;
+                            var mediaFactory = _mediaLibraryService.GetMediaFactory(stream, mimeType, null);
+
+                            //var mediaPart = _mediaLibraryService.ImportMedia(stream, folderPath, filename, null);
+                            //Services.ContentManager.Create(mediaPart);
+                            // Force a publish event which will update relevant Media properties
+                            replaceMedia.ContentItem.VersionRecord.Published = false;
+                            Services.ContentManager.Publish(replaceMedia.ContentItem);
+
+                            statuses.Add(replaceMedia);
+                        }
+                        else if (!string.IsNullOrEmpty(name))
+                        {
+                            StreamReader readStream = new StreamReader(stream);
+                            string text = readStream.ReadToEnd();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Unexpected exception when uploading a media.");
+                    statuses.Add(new
+                    {
+                        error = T(ex.Message).Text,
+                        //progress = 1.0,
+                    });
+                }
+            }
+
+            return Ok(new ResultViewModel { Content = new { FolderPath = replaceMedia.FolderPath, Data = statuses }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+
+        }
+
+        [HttpPost]
         public IHttpActionResult Download(JObject inModel)
         {
-            if (inModel == null)
+            if (inModel == null || inModel["Id"] == null)
                 return BadRequest();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 
-            var content = Services.ContentManager.Get((int)inModel["Id"], VersionOptions.DraftRequired);
-
-            if (content == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
-
+            var content = Services.ContentManager.Get((int)inModel["Id"], VersionOptions.Published);
             MediaPart part = content.As<MediaPart>();
+            if (content == null || part == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+
             var sourcePath = HttpContext.Current.Server.MapPath(@"~/Media/Default/" + part.FolderPath + "/" + part.FileName); //取得server的相對路徑
             if (!File.Exists(sourcePath))
             {

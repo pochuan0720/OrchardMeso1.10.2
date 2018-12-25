@@ -98,7 +98,7 @@ namespace Meso.Volunteer.Controllers
             }
 
             if (allContentItems == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
 
             Dictionary<IContent, ScheduleData> ScheduleMap =
@@ -166,7 +166,7 @@ namespace Meso.Volunteer.Controllers
             }
 
             if (list.Count == 0)
-                return NotFound();
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             return Ok(new ResultViewModel { Content = list.Values.OrderBy(x => x.UserName), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }

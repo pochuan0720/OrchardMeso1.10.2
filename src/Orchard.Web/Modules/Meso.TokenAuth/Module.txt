@@ -5,4 +5,4 @@ Website: http://www.meso-tek.com/
 Version: 1.0
 OrchardVersion: 1.0
 Description: OAuth2 token authentication for Orchard user accounts.
-Category: API
+Category: Meso API

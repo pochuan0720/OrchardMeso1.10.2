@@ -57,7 +57,7 @@ namespace Meso.Volunteer.Controllers {
             var content = _blogService.Get(newsId, VersionOptions.Latest).As<BlogPart>();
 
             if (content == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound)});
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound)});
 
             var blogPost = Services.ContentManager.New<BlogPostPart>("BlogPost");
             blogPost.BlogPart = content;
@@ -125,7 +125,7 @@ namespace Meso.Volunteer.Controllers {
             // Get draft (create a new version if needed)
             var blogPost = _blogPostService.Get(postId);//, VersionOptions.DraftRequired);
             if (blogPost == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             if (!Services.Authorizer.Authorize(Permissions.EditBlogPost, blogPost, T("Couldn't edit news post")))
                 return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't edit news post" });
@@ -150,11 +150,11 @@ namespace Meso.Volunteer.Controllers {
             int postId = (int)inModel["Id"];
             var blog = _blogService.Get(newsId, VersionOptions.Latest);
             if (blog == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             var post = _blogPostService.Get(postId, VersionOptions.Latest);
             if (post == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             if (!Services.Authorizer.Authorize(Permissions.DeleteBlogPost, post, T("Couldn't delete news post")))
                 return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't delete news post" });
@@ -176,12 +176,12 @@ namespace Meso.Volunteer.Controllers {
 
             var blog = _blogService.Get(newsId, VersionOptions.Latest);
             if (blog == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             var blogpost = _blogPostService.Get(postId);
 
             if (blogpost == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             var model = Services.ContentManager.BuildEditor(blogpost);
 
@@ -194,8 +194,8 @@ namespace Meso.Volunteer.Controllers {
 
             Pager pager = null;
 
-            if(inModel == null || inModel["NewsId"] == null)
-                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+            if (inModel == null || inModel["NewsId"] == null)
+                return BadRequest();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 
             int newsId = (int)inModel["NewsId"];
 

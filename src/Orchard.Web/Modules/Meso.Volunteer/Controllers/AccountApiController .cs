@@ -19,7 +19,9 @@ using System.Web.Http;
 using Orchard;
 using Newtonsoft.Json.Linq;
 using Orchard.Roles.Models;
-using Orchard.Users.ViewModels;
+using System.Collections.Generic;
+using System.Web;
+using Meso.Users.ViewModels;
 
 namespace Meso.Volunteer.Controllers {
     [Authorize]
@@ -58,33 +60,25 @@ namespace Meso.Volunteer.Controllers {
             if (!Services.Authorizer.Authorize(Orchard.Users.Permissions.ManageUsers, T("Not authorized to list users")))
                 return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to list users" });
 
-            // default options
-            UserIndexOptions options;
-            if (inModel["Options"] == null)
-                options = new UserIndexOptions();
-            else
-                options = inModel["Options"].ToObject<UserIndexOptions>();
+            Filter filter = null;
+            if (inModel["Filter"] != null)
+                filter = inModel["Filter"].ToObject<Filter>();
 
             var users = Services.ContentManager
                 .Query<UserPart, UserPartRecord>();
 
-            switch (options.Filter) {
-                case UsersFilter.Approved:
-                    users = users.Where(u => u.RegistrationStatus == UserStatus.Approved);
-                    break;
-                case UsersFilter.Pending:
-                    users = users.Where(u => u.RegistrationStatus == UserStatus.Pending);
-                    break;
-                case UsersFilter.EmailPending:
-                    users = users.Where(u => u.EmailStatus == UserStatus.Pending);
-                    break;
-            }
+            /*if(options.Filter.UserRoles != null && options.Filter.UserRoles.Length > 0)
+            {
+                users = users.OrderBy(u => u.UserName);
+            }*/
 
-            if (!string.IsNullOrWhiteSpace(options.Search)) {
+            /*if (!string.IsNullOrWhiteSpace(options.Search)) {
                 users = users.Where(u => u.UserName.Contains(options.Search) || u.Email.Contains(options.Search));
-            }
+            }*/
 
-            switch (options.Order) {
+            users = users.OrderBy(u => u.UserName);
+
+            /*switch (UsersOrder.Name) {
                 case UsersOrder.Name:
                     users = users.OrderBy(u => u.UserName);
                     break;
@@ -97,20 +91,20 @@ namespace Meso.Volunteer.Controllers {
                 case UsersOrder.LastLoginUtc:
                     users = users.OrderBy(u => u.LastLoginUtc);
                     break;
-            }
+            }*/
 
             //Paging
             Pager pager = null;
-            var results = Enumerable.Empty<UserPart>(); 
+            IEnumerable<object> results; 
             if (inModel["Pager"] != null)
             {
                 Pager _pager = inModel["Pager"].ToObject<Pager>();
                 pager = new Pager(_siteService.GetSiteSettings(), _pager.GetStartIndex(), _pager.PageSize, users.Count());
-                results = users.Slice(pager.GetStartIndex(), pager.PageSize).ToList();
+                results = users.Slice(pager.GetStartIndex(), pager.PageSize).Select(x => getUser(x, filter)).Where(x => x != null);
                 pager.PageSize = results.ToList().Count;
             }
             else
-                results = users.List<UserPart>();
+                results = users.List().Select( x => getUser(x, filter));
 
             var model = new {
                 Data = results.ToList(),
@@ -118,6 +112,23 @@ namespace Meso.Volunteer.Controllers {
             };
 
             return Ok(new ResultViewModel { Content = model, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+        }
+
+        private object getUser(UserPart user, Filter filter)
+        {
+            var model = Services.ContentManager.BuildEditor(user);
+            JObject obj = UpdateModelHandler.GetData(JObject.FromObject(user), model);
+            if (filter.UserRoles != null && filter.UserRoles.Length > 0)
+            {
+                foreach (string role in filter.UserRoles)
+                {
+                    if (obj["UserRoles"] != null && obj["UserRoles"].ToList().Contains(role))
+                        return obj;
+                }
+                return null;
+            }
+            else
+                return obj;
         }
 
         [HttpPost]
@@ -133,17 +144,11 @@ namespace Meso.Volunteer.Controllers {
 
             if (user == null)
             {
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
             }
             else
             {
                 var model = Services.ContentManager.BuildEditor(user);
-
-                /*foreach (var item in model.Content.Items)
-                {
-                    if (item.TemplateName != null && item.TemplateName.Equals("Parts/Roles.UserRoles"))
-                        outModel.UserRoles = item.Model.UserRoles.Roles;
-                }*/
 
                 return Ok(new ResultViewModel { Content = UpdateModelHandler.GetData(JObject.FromObject(user), model), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
             }
@@ -165,7 +170,7 @@ namespace Meso.Volunteer.Controllers {
 
             if (user == null)
             {
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
             }
 
             /*if (!_userService.VerifyUserUnicity(id, inModel.UserName, inModel.Email))
@@ -229,7 +234,7 @@ namespace Meso.Volunteer.Controllers {
 
             if (user == null)
             {
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
             }
             else
             {
@@ -255,24 +260,20 @@ namespace Meso.Volunteer.Controllers {
         [HttpPost]
         public IHttpActionResult self()
         {
-            UserPart user = (UserPart)_membershipService.GetUser(User.Identity.Name);
-
-            /*UserEditApiViewModel outModel = new UserEditApiViewModel();
-            outModel.UserName = user.UserName;
-            outModel.Email = user.Email;
-            outModel.UserRoles = user.ContentItem.As<UserRolesPart>().Roles;*/
+            IUser user = _membershipService.GetUser(User.Identity.Name);
             var model = Services.ContentManager.BuildEditor(user);
-
-            return Ok(new ResultViewModel { Content = UpdateModelHandler.GetData(JObject.FromObject(user), model), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+            string[] roles = user.As<UserRolesPart>().Roles.ToArray();
+            JObject obj = JObject.FromObject(user);
+            obj.Add(new JProperty("UserRoles", roles));
+            return Ok(new ResultViewModel { Content = UpdateModelHandler.GetData(obj, model), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
         [AllowAnonymous]
         [HttpPost]
         public IHttpActionResult register(JObject inModel)
         {
-            if (inModel == null || string.IsNullOrEmpty(inModel["UserName"].ToString()) 
-                || string.IsNullOrEmpty(inModel["Password"].ToString()) 
-                || string.IsNullOrEmpty(inModel["Email"].ToString()))
+            if (inModel == null || inModel["UserName"] == null || inModel["Password"] == null 
+                || inModel["Email"] == null)
                 return BadRequest();
 
             string userName = inModel["UserName"].ToString();

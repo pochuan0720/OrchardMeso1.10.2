@@ -49,12 +49,10 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Net.Http.Formatting, Version=5.2.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\packages\Microsoft.AspNet.WebApi.Client.5.2.3\lib\net45\System.Net.Http.Formatting.dll</HintPath>
     </Reference>
-    <Reference Include="System.Web.ApplicationServices" />
     <Reference Include="System.Web.DynamicData" />
     <Reference Include="System.Web.Entity" />
     <Reference Include="System.Web.Extensions" />
@@ -84,6 +82,7 @@
     <Compile Include="Controllers\AttendeeApiController.cs" />
     <Compile Include="Controllers\CalendarApiController.cs" />
     <Compile Include="Controllers\CommentApiController.cs" />
+    <Compile Include="Controllers\SurveyApiController.cs" />
     <Compile Include="Controllers\MediaApiController.cs" />
     <Compile Include="Controllers\RoleApiController.cs" />
     <Compile Include="Controllers\NewsApiController.cs" />
@@ -102,12 +101,14 @@
     <Compile Include="Routing\CalendarApiRoutes.cs" />
     <Compile Include="Routing\CommentsApiRoutes.cs" />
     <Compile Include="Routing\MediaApiRoutes.cs" />
+    <Compile Include="Routing\SurveyApiRoutes.cs" />
     <Compile Include="Routing\RoleApiRoutes.cs" />
     <Compile Include="Routing\UsersApiRoutes.cs" />
     <Compile Include="Routing\NewsApiRoutes.cs" />
     <Compile Include="Routing\ReportApiRoutes.cs" />
     <Compile Include="Services\CalendarService.cs" />
     <Compile Include="Services\ICalendarService.cs" />
+    <Compile Include="ViewModels\UsersViewModel.cs" />
     <Compile Include="ViewModels\VolunteerApiViewMode.cs" />
     <Compile Include="ViewModels\VolunteerSummaryApiViewModel.cs" />
   </ItemGroup>
@@ -123,7 +124,9 @@
     <Content Include="Web.Release.config">
       <DependentUpon>Web.config</DependentUpon>
     </Content>
-    <Content Include="Views\Web.config" />
+    <Content Include="Views\Web.config">
+      <SubType>Designer</SubType>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Models\" />
@@ -151,6 +154,14 @@
     <ProjectReference Include="..\Orchard.Comments\Orchard.Comments.csproj">
       <Project>{14c049fd-b35b-415a-a824-87f26b26e7fd}</Project>
       <Name>Orchard.Comments</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Orchard.DynamicForms\Orchard.DynamicForms.csproj">
+      <Project>{82190f52-2901-46d6-8a4c-34649959483f}</Project>
+      <Name>Orchard.DynamicForms</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Orchard.Layouts\Orchard.Layouts.csproj">
+      <Project>{6bd8b2fa-f2e3-4ac8-a4c3-2925a653889a}</Project>
+      <Name>Orchard.Layouts</Name>
     </ProjectReference>
     <ProjectReference Include="..\Orchard.MediaLibrary\Orchard.MediaLibrary.csproj">
       <Project>{73a7688a-5bd3-4f7e-adfa-ce36c5a10e3b}</Project>

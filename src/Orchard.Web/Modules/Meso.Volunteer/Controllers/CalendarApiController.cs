@@ -1,7 +1,4 @@
-﻿using Orchard.Schedule.Models;
-using Orchard.Schedule.Services;
-using Orchard.Schedule.ViewModels;
-using Orchard.Autoroute.Services;
+﻿using Orchard.Autoroute.Services;
 using Orchard.ContentManagement;
 using Orchard.Core.Common.ViewModels;
 using System;
@@ -24,6 +21,8 @@ using Orchard.Core.Common.Handlers;
 using Orchard.Users.Models;
 using Orchard.Projections.Models;
 using Orchard;
+using Orchard.Schedule.Services;
+using Orchard.Schedule.Models;
 
 namespace Meso.Volunteer.Controllers
 {
@@ -115,7 +114,7 @@ namespace Meso.Volunteer.Controllers
             }
 
             if (allContentItems == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
 
             Dictionary<IContent, ScheduleData> ScheduleMap =
@@ -146,7 +145,7 @@ namespace Meso.Volunteer.Controllers
             var contentItem = _orchardServices.Authorizer.Authorize(Orchard.Schedule.Permissions.ManageSchedules) ? _orchardServices.ContentManager.Get(id, VersionOptions.Latest) : _orchardServices.ContentManager.Get(id, VersionOptions.Published);//, VersionOptions.DraftRequired);
 
             if (contentItem == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             QueryModel query = inModel["Query"].ToObject<QueryModel>();
             JObject tmp = JObject.FromObject(new { ContentType = query.Name });
@@ -184,7 +183,11 @@ namespace Meso.Volunteer.Controllers
             _orchardServices.ContentManager.Create(content, VersionOptions.Draft);
             var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(inModel));
             if (inModel["IsPublished"] != null && (bool)inModel["IsPublished"])
+            {
                 _orchardServices.ContentManager.Publish(content.ContentItem);
+                if (inModel["IsMailTo"] != null && (bool)inModel["IsMailTo"])
+                    _calendarService.Notification(content.ContentItem, inModel["ContentType"].ToString() + "Notify");
+            }
             return Ok(new ResultViewModel { Content = new { Id = content.Id }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
@@ -207,7 +210,7 @@ namespace Meso.Volunteer.Controllers
             var statuses = new List<object>();
 
             if (inModel["Places"] == null)
-                return NotFound();
+                return BadRequest();
 
             foreach (string place in inModel["Places"])
             {
@@ -261,7 +264,11 @@ namespace Meso.Volunteer.Controllers
                             _orchardServices.ContentManager.Create(content, VersionOptions.Draft);
                             var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(_inModel));
                             if (inModel["IsPublished"] != null && (bool)inModel["IsPublished"])
+                            {
                                 _orchardServices.ContentManager.Publish(content.ContentItem);
+                                if (_inModel["IsMailTo"] != null && (bool)_inModel["IsMailTo"])
+                                    _calendarService.Notification(content.ContentItem, inModel["ContentType"].ToString() + "Notify");
+                            }
 
                             statuses.Add(new
                             {
@@ -285,9 +292,13 @@ namespace Meso.Volunteer.Controllers
                             _inModel.Add(new JProperty("Place", place));
 
                         _orchardServices.ContentManager.Create(content, VersionOptions.Draft);
-                        var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(inModel));
+                        var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(_inModel));
                         if (inModel["IsPublished"] != null && (bool)inModel["IsPublished"])
+                        {
                             _orchardServices.ContentManager.Publish(content.ContentItem);
+                            if (inModel["IsMailTo"] != null && (bool)inModel["IsMailTo"])
+                                _calendarService.Notification(content.ContentItem, inModel["ContentType"].ToString() + "Notify");
+                        }
 
                         statuses.Add(new
                         {
@@ -311,7 +322,7 @@ namespace Meso.Volunteer.Controllers
             var schedule = _orchardServices.ContentManager.Get(id, VersionOptions.DraftRequired);
 
             if (schedule == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return  Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             if (!_orchardServices.Authorizer.Authorize(Orchard.Schedule.Permissions.ManageSchedules, schedule, T("Couldn't edit schedule")))
                 return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't edit schedule" });
@@ -324,7 +335,11 @@ namespace Meso.Volunteer.Controllers
             _orchardServices.ContentManager.UpdateEditor(schedule, _updateModelHandler.SetData(inModel));
 
             if (inModel["IsPublished"] != null && (bool)inModel["IsPublished"])
+            {
                 _orchardServices.ContentManager.Publish(schedule);
+                if (inModel["IsMailTo"] != null && (bool)inModel["IsMailTo"])
+                    _calendarService.Notification(schedule, inModel["ContentType"].ToString() + "Notify");
+            }
             else
                 _orchardServices.ContentManager.Unpublish(schedule);
 
@@ -346,7 +361,7 @@ namespace Meso.Volunteer.Controllers
 
             var schedule = _orchardServices.ContentManager.Get(id, VersionOptions.Latest);
             if (schedule == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             string contentType = GetContentType("Delete", ref inModel);
             if (contentType == null || !contentType.Equals(schedule.ContentType))

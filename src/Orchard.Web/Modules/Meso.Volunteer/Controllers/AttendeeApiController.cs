@@ -46,8 +46,6 @@ namespace Meso.Volunteer.Controllers
         private readonly ICalendarUpdateModelHandler _updateModelHandler;
         private readonly IAuthenticationService _authenticationService;
         private readonly IProjectionManager _projectionManager;
-        private readonly IDateLocalizationServices _dateLocalizationServices;
-        private readonly IWorkContextAccessor _accessor;
         private static DateTime UnixEpochTime = new DateTime(1970, 1, 1);
 
 
@@ -62,9 +60,7 @@ namespace Meso.Volunteer.Controllers
             IShapeFactory shapeFactory,
             ICalendarUpdateModelHandler updateModelHandler,
             IAuthenticationService authenticationService,
-            IProjectionManager projectionManager,
-            IDateLocalizationServices dateLocalizationServices,
-            IWorkContextAccessor accessor
+            IProjectionManager projectionManager
             )
         {
             _roleService = roleService;
@@ -77,8 +73,6 @@ namespace Meso.Volunteer.Controllers
             _updateModelHandler = updateModelHandler;
             _authenticationService = authenticationService;
             _projectionManager = projectionManager;
-            _dateLocalizationServices = dateLocalizationServices;
-            _accessor = accessor;
             Logger = NullLogger.Instance;
             T = NullLocalizer.Instance;
             Shape = shapeFactory;
@@ -99,7 +93,7 @@ namespace Meso.Volunteer.Controllers
 
 
             if (contentItems == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             IList<object> list = new List<object>();
             foreach(ContentItem item in contentItems)
@@ -120,7 +114,7 @@ namespace Meso.Volunteer.Controllers
             var content = _orchardServices.ContentManager.Get((int)inModel["Id"]);//, VersionOptions.DraftRequired);
 
             if (content == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             //var contentModel = _orchardServices.ContentManager.BuildEditor(content);
 
@@ -135,8 +129,6 @@ namespace Meso.Volunteer.Controllers
                 return BadRequest();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
             }
 
-
-
             string contentType = GetContentType("Edit", ref inModel);
 
             if (contentType == null)
@@ -145,7 +137,7 @@ namespace Meso.Volunteer.Controllers
             var containerItem = _orchardServices.ContentManager.Get((int)inModel["ContainerId"], VersionOptions.Published);
 
             if (containerItem == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             IUser user;
             if (_orchardServices.Authorizer.Authorize(Orchard.Schedule.Permissions.ManageSchedules, T("Not authorized to manage content")) && inModel["Owner"] != null)
@@ -153,13 +145,16 @@ namespace Meso.Volunteer.Controllers
             else
                 user = _authenticationService.GetAuthenticatedUser();
 
+            if (user == null)
+                return NotFound();
+
             // 1. 檢查是否可參加(一年允許取消六次)
 
             int cancelCount = _orchardServices.ContentManager.Query(VersionOptions.Published, inModel["ContentType"].ToString() + "Cancel").List()
                 .Where(i => i.As<CommonPart>().Owner.Id == user.Id && ((DateTime)i.As<CommonPart>().PublishedUtc).ToString("yyyy").Equals(DateTime.UtcNow.ToString("2019"))).Count();
 
             if (cancelCount > 6)
-                return ResponseMessage(new HttpResponseMessage(HttpStatusCode.Forbidden));// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.Forbidden) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = "本年度已取消" + cancelCount + "次" });
 
             // 2. 檢查剩餘可參與額度
             //Get Scheduler model
@@ -169,7 +164,7 @@ namespace Meso.Volunteer.Controllers
             int volunteerQuota = (int)outModel["VolunteerQuota"];
             JToken[] attendees = outModel["Attendee"].ToArray();
             if (attendees.Length >= volunteerQuota)
-                return ResponseMessage(new HttpResponseMessage(HttpStatusCode.Forbidden));// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.Forbidden) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = "額度已滿" });
 
             // 3. 檢查是否已經參加
 
@@ -178,7 +173,7 @@ namespace Meso.Volunteer.Controllers
                 //JObject attendee = JObject.FromObject(obj);
                 string userName = attendee["User"]["UserName"].ToString();
                 if (userName.Equals(user.UserName))
-                    return Conflict();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Conflict.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.Conflict) });
+                    return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Conflict.ToString("d"), Message = "此帳號已經參加" });
             }
 
             var content = _orchardServices.ContentManager.New<ContentPart>(contentType);
@@ -189,7 +184,7 @@ namespace Meso.Volunteer.Controllers
             _orchardServices.ContentManager.Create(content, VersionOptions.Draft);
             var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(inModel));
             _orchardServices.ContentManager.Publish(content.ContentItem);
-            return Ok(new ResultViewModel { Content = new { Id = content.Id }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+            return Ok(new ResultViewModel { Content = getAttendee(content), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
 
         }
 
@@ -202,7 +197,7 @@ namespace Meso.Volunteer.Controllers
             var content = _orchardServices.ContentManager.Get((int)inModel["Id"]);//, VersionOptions.DraftRequired);
 
             if (content == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             if (!_orchardServices.Authorizer.Authorize(Orchard.Schedule.Permissions.ManageSchedules, content, T("Couldn't edit content")))
                 return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't edit content" });
@@ -230,12 +225,13 @@ namespace Meso.Volunteer.Controllers
             var content = _orchardServices.ContentManager.Get((int)inModel["Id"], VersionOptions.Latest);
 
             if (content == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
-
-            bool other = _orchardServices.Authorizer.Authorize(Orchard.Core.Contents.Permissions.PublishContent, content, T("Couldn't Unpublish content"));
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             if (!_orchardServices.Authorizer.Authorize(Orchard.Core.Contents.Permissions.PublishContent, content, T("Couldn't Unpublish content")))
                 return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't edit content" });
+
+            if (!content.As<CommonPart>().IsPublished())
+                return InternalServerError();
 
             /*string contentType = GetContentType("Delete", ref inModel);
             if (!string.IsNullOrEmpty(contentType) && content.ContentType.Equals(contentType))
@@ -255,83 +251,9 @@ namespace Meso.Volunteer.Controllers
                 {
                     //New a Cancel Content
                     string cancelContentType = inModel["ContentType"].ToString() + "Cancel";
-                    var calcelItem = _orchardServices.ContentManager.New<ContentPart>(cancelContentType);
+                    _calendarService.Notification(content, cancelContentType);
+                    return Ok(new ResultViewModel { Content = new { Id = content.Id }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
 
-                    if (calcelItem != null)
-                    {
-                        CommonPart common = content.As<CommonPart>();
-                        SchedulePart schedulePart = common.Container.As<SchedulePart>();
-                        var scheduleModel = _orchardServices.ContentManager.BuildEditor(schedulePart);
-   
-                        JObject scheduleObject = Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(JObject.FromObject(schedulePart), scheduleModel);
-                        ScheduleOccurrence occurrence = new ScheduleOccurrence(schedulePart, schedulePart.StartDate);
-                        IUser user = common.Owner;
-
-                        _orchardServices.ContentManager.Create(calcelItem, VersionOptions.Draft);
-                        AttendeeCancelViewMode cancelModel = new AttendeeCancelViewMode();
-                        string people = common.Container.As<ContainerPart>().ItemCount + "/" + scheduleObject["VolunteerQuota"].ToString();
-                        string place = scheduleObject["Place"].ToString();
-                        if (scheduleObject["Item"] != null)
-                        {
-                            string item = scheduleObject["Item"].ToString();
-                            if(item.Equals("帶隊解說") || item.Equals("各項活動支援")) //申請單位 XX(單位名稱) X/X人
-                            {
-                                cancelModel.Title = scheduleObject["ApplyUnit"].ToString() +" " + people;
-                            }
-                            else //XX(地區)駐站 X/X人(保育全部套用此規則)
-                                cancelModel.Title = place + " 駐站 " + people;
-                        }
-                        else
-                            cancelModel.Title = schedulePart.Title;
-
-                        cancelModel.Owner = user.UserName;
-                        JObject obj = new JObject();
-                        var userModel = _orchardServices.ContentManager.BuildEditor(user);
-
-                        JObject userObject = Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(JObject.FromObject(user), userModel);
-                        obj.Add(new JProperty("AttendeeId", content.Id));
-                        obj.Add(new JProperty("Name", userObject["Name"]));
-                        obj.Add(new JProperty("Email", user.Email));
-                        obj.Add(new JProperty("Place", place));
-                        obj.Add(new JProperty("StartDate", _dateLocalizationServices.ConvertToLocalizedString(occurrence.Start, ParseFormat, new DateLocalizationOptions())));
-                        obj.Add(new JProperty("EndDate", _dateLocalizationServices.ConvertToLocalizedString(occurrence.End, ParseFormat, new DateLocalizationOptions())));
-
-                        //mailto list
-                        IList<string> roles = user.ContentItem.As<UserRolesPart>().Roles;
-                        var users = _orchardServices.ContentManager.Query<UserPart, UserPartRecord>().List();
-                        IEnumerable<string> alluserEmails = null;
-                        IEnumerable<string> allAdminEmails = null;
-                        foreach (string role in roles)
-                        {
-                            IEnumerable<string> userEmails = null;
-                            userEmails = users.Where(i => i.ContentItem.As<UserRolesPart>().Roles.Contains(role)).Select(x => x.Email);
-                            if (alluserEmails == null)
-                                alluserEmails = userEmails;
-                            else
-                                alluserEmails = alluserEmails.Select(x => x).Concat(userEmails.Select(y => y));
-
-                            IEnumerable<string> adminEmails = null;
-                            adminEmails = users.Where(i => i.ContentItem.As<UserRolesPart>().Roles.Contains(role + "管理員")).Select(x => x.Email);
-                            if (allAdminEmails == null)
-                                allAdminEmails = adminEmails;
-                            else
-                                allAdminEmails = allAdminEmails.Select(x => x).Concat(adminEmails.Select(y => y));
-                        }
-
-                        var mailTo = String.Join(";", alluserEmails.ToList().ToArray());
-                        var mailToAdmin = String.Join(";", allAdminEmails.ToList().ToArray());
-                        obj.Add(new JProperty("MailTo", mailTo));
-                        obj.Add(new JProperty("MailToAdmin", mailToAdmin));
-                        cancelModel.Data = obj;
-
-
-
-                        var editorShape = _orchardServices.ContentManager.UpdateEditor(calcelItem, _updateModelHandler.SetData(cancelModel));
-                        _orchardServices.ContentManager.Publish(calcelItem.ContentItem);
-
-
-                        return Ok(new ResultViewModel { Content = new { Id = content.Id }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
-                    }
                 } catch(Exception e)
                 {
                     _orchardServices.ContentManager.Publish(content);
@@ -378,7 +300,7 @@ namespace Meso.Volunteer.Controllers
             }
 
             if (allContentItems == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             DateTime startDate = (DateTime)inModel["StartDate"];
             DateTime endDate = (DateTime)inModel["EndDate"];
@@ -389,7 +311,7 @@ namespace Meso.Volunteer.Controllers
                     && _calendarService.DateInRange(x.As<CommonPart>().Container.As<SchedulePart>(), startDate, endDate))
                 .Select(a => getAttendee(a, false));
             if (attendees == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
 
             return Ok(new ResultViewModel { Content = attendees, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
@@ -457,7 +379,7 @@ namespace Meso.Volunteer.Controllers
             }
 
             if (allContentItems == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
 
             //IEnumerable<ContentItem> contentItems = _projectionManager.GetContentItems(inModel.Query);
@@ -467,7 +389,7 @@ namespace Meso.Volunteer.Controllers
 
             allContentItems = allContentItems.Select(c => c.As<CommonPart>()).Where(x => x.Owner.Id == user.Id && x.Container != null).Select(c => c.Container.ContentItem);
             if (allContentItems == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return  Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
 
             allContentItems = allContentItems.GroupBy(x => x.Id).Select(g => g.First());
@@ -539,7 +461,7 @@ namespace Meso.Volunteer.Controllers
             }
 
             if (allContentItems == null)
-                return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
             //ContentItem.VersionRecord != null && content.ContentItem.VersionRecord.Published
 
@@ -569,6 +491,55 @@ namespace Meso.Volunteer.Controllers
 
         }
 
+        public IHttpActionResult cancelhistory(JObject inModel)
+        {
+            if (inModel == null || inModel["Query"] == null)
+                return BadRequest();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+
+
+            IEnumerable<ContentItem> allContentItems = null;
+            string queryName = "";
+            IUser user = _authenticationService.GetAuthenticatedUser();
+            UserRolesPart rolesPart = user.As<UserRolesPart>();
+
+            if (rolesPart != null)
+            {
+                IEnumerable<string> userRoles = rolesPart.Roles;
+                foreach (var role in userRoles)
+                {
+                    foreach (var permissionName in _roleService.GetPermissionsForRoleByName(role))
+                    {
+                        string possessedName = permissionName;
+                        QueryModel query = inModel["Query"].ToObject<QueryModel>();
+                        if (possessedName.StartsWith("View_" + query.Name) && !possessedName.EndsWith("Cancel"))
+                        {
+                            queryName = possessedName.Substring("View_".Length);
+                            IEnumerable<ContentItem> contentItems = _orchardServices.ContentManager.Query(VersionOptions.Draft, queryName).List();//_projectionManager.GetContentItems(new QueryModel { Name = queryName });
+                            if (allContentItems == null)
+                                allContentItems = contentItems;
+                            else
+                                allContentItems = allContentItems.Select(x => x).Concat(contentItems.Select(y => y));
+                        }
+                    }
+                }
+            }
+
+            if (allContentItems == null)
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+            DateTime startDate = (DateTime)inModel["StartDate"];
+            DateTime endDate = (DateTime)inModel["EndDate"];
+
+            IEnumerable<object> attendees = allContentItems
+                .Where(x => x.As<CommonPart>().Container != null
+                    && _calendarService.DateInRange(x.As<CommonPart>().Container.As<SchedulePart>(), startDate, endDate))
+                .Select(a => getAttendee(a, false));
+            if (attendees == null)
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+
+            return Ok(new ResultViewModel { Content = attendees, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+        }
 
         private string GetContentType(string prefix, ref JObject inModel)
         {
@@ -619,32 +590,6 @@ namespace Meso.Volunteer.Controllers
                 return contentTypesOthers[0];
             else
                 return inModel["ContentType"].ToString();
-        }
-
-
-
-        private string _dateFormat;
-        private string DateFormat
-        {
-            get { return _dateFormat ?? (_dateFormat = _accessor.GetContext().CurrentSite.As<ScheduleSettingsPart>().DateFormat); }
-        }
-
-        private string ParseFormat
-        {
-            get
-            {
-                switch (DateFormat)
-                {
-                    case "DMY":
-                        return "dd/MM/yyyy";
-                    case "MDY":
-                        return "MM/dd/yyyy";
-                    case "YMD":
-                        return "yyyy/MM/dd";
-                    default:
-                        return "MM/dd/yyyy";
-                }
-            }
         }
 
 

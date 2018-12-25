@@ -228,7 +228,6 @@
     <Compile Include="Services\ScheduleLayoutService.cs" />
     <Compile Include="Settings\ScheduleSettings.cs" />
     <Compile Include="Settings\ScheduleSettingsEvents.cs" />
-    <Compile Include="ViewModels\AttendeeCancelViewMode.cs" />
     <Compile Include="ViewModels\EditScheduleSettingsViewModel.cs" />
     <Compile Include="ViewModels\EditScheduleViewModel.cs" />
   </ItemGroup>

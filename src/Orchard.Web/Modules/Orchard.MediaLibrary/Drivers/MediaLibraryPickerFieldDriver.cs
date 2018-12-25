@@ -41,7 +41,9 @@ namespace Orchard.MediaLibrary.Drivers {
             return ContentShape("Fields_MediaLibraryPicker_Edit", GetDifferentiator(field, part),
                 () => {
                     ICollection<ContentItem> ContentItems = _contentManager.GetMany<ContentItem>(field.Ids, VersionOptions.Published, QueryHints.Empty).ToList();
-                    ICollection<object> Objects = ContentItems.Select(x => x.As<MediaPart>()).Select(y => new { Id = y.Id, FileName = y.FileName }).ToList<object>();
+                    //ICollection<object> Objects = ContentItems.Select(x => x.As<MediaPart>()).Select(y => new { Id = y.Id, FileName = y.FileName }).ToList<object>();
+                    //Meso Frank, 20181224
+                    ICollection<object> Objects = ContentItems.Select(x => x.As<MediaPart>()).Select(y => new { Id = y.Id, FileName = y.FileName, MediaUrl = y.MediaUrl }).ToList<object>();
                     var model = new MediaLibraryPickerFieldViewModel {
                         Field = field,
                         Part = part,

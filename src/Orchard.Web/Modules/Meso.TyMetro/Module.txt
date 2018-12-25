@@ -1,0 +1,12 @@
+﻿Name: Meso TyMetro
+AntiForgery: enabled
+Author: The Meso Team
+Website: http://www.meso-tek.com
+Version: 0.1
+OrchardVersion: 10.2
+Description: Description for the module
+Dependencies: Orchard.Users, Orchard.Roles
+Category: Meso API
+Features:
+    Meso.TyMetro:
+        Description: Description for feature Meso TyMetro.

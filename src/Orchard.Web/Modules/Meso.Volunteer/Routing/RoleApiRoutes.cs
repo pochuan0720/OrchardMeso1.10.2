@@ -4,7 +4,7 @@ using Orchard.WebApi.Routes;
 
 namespace Meso.Volunteer.Routing.Api
 {
-    public class ApiRoutes : IHttpRouteProvider
+    public class RoleApiRoutes : IHttpRouteProvider
     {
         public IEnumerable<Orchard.Mvc.Routes.RouteDescriptor> GetRoutes()
         {
