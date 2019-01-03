@@ -38,7 +38,7 @@ namespace Orchard.Comments.Models {
             get { return Record.Email; }
             set { Record.Email = value; }
         }
-        [JsonProperty]
+        //[JsonProperty]
         public CommentStatus Status {
             get { return Record.Status; }
             set { Record.Status = value; }

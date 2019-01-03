@@ -108,6 +108,7 @@
     <Compile Include="Routing\ReportApiRoutes.cs" />
     <Compile Include="Services\CalendarService.cs" />
     <Compile Include="Services\ICalendarService.cs" />
+    <Compile Include="ViewModels\Filter.cs" />
     <Compile Include="ViewModels\UsersViewModel.cs" />
     <Compile Include="ViewModels\VolunteerApiViewMode.cs" />
     <Compile Include="ViewModels\VolunteerSummaryApiViewModel.cs" />

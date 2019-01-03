@@ -21,30 +21,37 @@ using Newtonsoft.Json.Linq;
 using Orchard.Roles.Models;
 using System.Collections.Generic;
 using System.Web;
-using Meso.Users.ViewModels;
+using Meso.Volunteer.ViewModels;
+using Orchard.Roles.Services;
 
 namespace Meso.Volunteer.Controllers {
     [Authorize]
     public class AccountApiController : ApiController {
+        private readonly IRoleService _roleService;
         private readonly IMembershipService _membershipService;
         private readonly IUserService _userService;
         private readonly IUserEventHandler _userEventHandlers;
         private readonly ISiteService _siteService;
+        private readonly IAuthenticationService _authenticationService;
         private readonly IUpdateModelHandler _updateModelHandler;
 
         public AccountApiController(
+            IRoleService roleService,
             IOrchardServices services,
             IMembershipService membershipService,
             IUserService userService,
             IShapeFactory shapeFactory,
             IUserEventHandler userEventHandlers,
             ISiteService siteService,
+            IAuthenticationService authenticationService,
             IUpdateModelHandler updateModelHandler) {
+            _roleService = roleService;
             Services = services;
             _membershipService = membershipService;
             _userService = userService;
             _userEventHandlers = userEventHandlers;
             _siteService = siteService;
+            _authenticationService = authenticationService;
             _updateModelHandler = updateModelHandler;
             T = NullLocalizer.Instance;
             Shape = shapeFactory;
@@ -57,12 +64,24 @@ namespace Meso.Volunteer.Controllers {
         [HttpPost]
         public IHttpActionResult query(JObject inModel) {
 
-            if (!Services.Authorizer.Authorize(Orchard.Users.Permissions.ManageUsers, T("Not authorized to list users")))
-                return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to list users" });
+            //if (!Services.Authorizer.Authorize(Orchard.Users.Permissions.ManageUsers, T("Not authorized to list users")))
+            //    return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to list users" });
 
             Filter filter = null;
-            if (inModel["Filter"] != null)
+            if (inModel["Filter"] != null && inModel["Filter"].HasValues)
                 filter = inModel["Filter"].ToObject<Filter>();
+            else
+            {
+                HashSet<string> roles = new HashSet<string>();
+                IUser user = _authenticationService.GetAuthenticatedUser();
+                foreach(string role in user.ContentItem.As<UserRolesPart>().Roles)
+                {
+                    roles.Add(role);
+                    if (role.EndsWith("ºÞ²z­û"))
+                        roles.Add(role.Substring(0, role.Length -3));
+                }
+                filter = new Filter { UserRoles = roles.ToArray() };
+            }
 
             var users = Services.ContentManager
                 .Query<UserPart, UserPartRecord>();
@@ -104,7 +123,7 @@ namespace Meso.Volunteer.Controllers {
                 pager.PageSize = results.ToList().Count;
             }
             else
-                results = users.List().Select( x => getUser(x, filter));
+                results = users.List().Select( x => getUser(x, filter)).Where(x => x != null);
 
             var model = new {
                 Data = results.ToList(),

@@ -82,15 +82,65 @@ namespace Meso.Volunteer.Controllers
         public Localizer T { get; set; }
         dynamic Shape { get; set; }
 
-        [HttpPost]
         public IHttpActionResult query(JObject inModel)
         {
-            if (inModel == null || inModel["ContainerId"] == null)
-                return BadRequest();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+            if (inModel == null)
+                return BadRequest();
+
+            if (inModel["ContainerId"] != null)
+                return queryByContainer((int)inModel["ContainerId"]);
+
+            if (!_orchardServices.Authorizer.Authorize(Orchard.Schedule.Permissions.ManageSchedules, T("Not authorized to manage content")))
+                return Unauthorized();
+
+            IEnumerable<ContentItem> allContentItems = null;
+            string queryName = "";
+            IUser user = _authenticationService.GetAuthenticatedUser();
+            UserRolesPart rolesPart = user.As<UserRolesPart>();
+
+            if (rolesPart != null)
+            {
+                IEnumerable<string> userRoles = rolesPart.Roles;
+                foreach (var role in userRoles)
+                {
+                    foreach (var permissionName in _roleService.GetPermissionsForRoleByName(role))
+                    {
+                        string possessedName = permissionName;
+                        QueryModel query = inModel["Query"].ToObject<QueryModel>();
+                        if (possessedName.StartsWith("View_" + query.Name))
+                        {
+                            queryName = possessedName.Substring("View_".Length);
+                            IEnumerable<ContentItem> contentItems = _projectionManager.GetContentItems(new QueryModel { Name = queryName });
+                            if (allContentItems == null)
+                                allContentItems = contentItems;
+                            else
+                                allContentItems = allContentItems.Select(x => x).Concat(contentItems.Select(y => y));
+                        }
+                    }
+                }
+            }
+
+            if (allContentItems == null)
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+            DateTime startDate = (DateTime)inModel["StartDate"];
+            DateTime endDate = (DateTime)inModel["EndDate"];
+
+            IEnumerable<object> attendees = allContentItems
+                .Where(x => x.As<CommonPart>().Container != null
+                    && _calendarService.DateInRange(x.As<CommonPart>().Container.As<SchedulePart>(), startDate, endDate))
+                .Select(a => getAttendee(a, inModel, true)).Where(y=>y!=null);
+            if (attendees == null)
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
 
-            IEnumerable<ContentItem> contentItems = _containerService.GetContentItems((int)inModel["ContainerId"]);
+            return Ok(new ResultViewModel { Content = attendees, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+        }
 
+        private IHttpActionResult queryByContainer(int containerId)
+        {
+
+            IEnumerable<ContentItem> contentItems = _containerService.GetContentItems(containerId);
 
             if (contentItems == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
@@ -182,6 +232,12 @@ namespace Meso.Volunteer.Controllers
                 return InternalServerError();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.InternalServerError.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.InternalServerError) });
 
             _orchardServices.ContentManager.Create(content, VersionOptions.Draft);
+            //init
+            if (inModel["AttendState"] == null)
+                inModel["AttendState"] = false;
+            if (inModel["IsAttendFee"] == null)
+                inModel["IsAttendFee"] = false;
+
             var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(inModel));
             _orchardServices.ContentManager.Publish(content.ContentItem);
             return Ok(new ResultViewModel { Content = getAttendee(content), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
@@ -309,7 +365,7 @@ namespace Meso.Volunteer.Controllers
                 .Where(x => x.As<CommonPart>().Owner.Id == user.Id 
                     && x.As<CommonPart>().Container != null 
                     && _calendarService.DateInRange(x.As<CommonPart>().Container.As<SchedulePart>(), startDate, endDate))
-                .Select(a => getAttendee(a, false));
+                .Select(a => getAttendee(a, null, false));
             if (attendees == null)
                 return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
@@ -317,12 +373,23 @@ namespace Meso.Volunteer.Controllers
             return Ok(new ResultViewModel { Content = attendees, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-        private object getAttendee(IContent content, bool withUser = true)
+        private object getAttendee(IContent content, JObject inModel = null, bool withUser = true)
         {
             CommonPart common = content.As<CommonPart>();
             IContent container = content.As<CommonPart>().Container;
             var attendeeModel = _orchardServices.ContentManager.BuildEditor(content);
             JObject attendee = Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(new JObject(), attendeeModel);
+
+            if (inModel != null)
+            {
+
+                if (inModel["AttendState"] != null && (attendee["AttendState"] == null  || attendee["AttendState"].Type == JTokenType.Null || (bool)inModel["AttendState"] != (bool)attendee["AttendState"]))
+                    return null;
+
+                if (inModel["IsAttendFee"] != null && (attendee["IsAttendFee"] == null || attendee["IsAttendFee"].Type == JTokenType.Null || (bool)inModel["IsAttendFee"] != (bool)attendee["IsAttendFee"]))
+                    return null;
+            }
+
             attendee.Add(new JProperty("Id", content.Id));
             attendee.Add(new JProperty("CreatedUtc", common.CreatedUtc));
 
@@ -340,6 +407,14 @@ namespace Meso.Volunteer.Controllers
                 containerModel = _calendarService.GetOccurrenceViewModel(new ScheduleOccurrence(schedule, schedule.StartDate), new ScheduleData(container.ContentItem, Url, _slugService, _orchardServices), false);
             }
             attendee.Add(new JProperty("Container", containerModel));
+
+            if (inModel != null && inModel["Place"] != null)
+            {
+                string place = inModel["Place"].ToString();
+                JObject containerJModel = JObject.FromObject(containerModel);
+                if (!inModel["Place"].ToString().Equals(containerJModel["Place"].ToString()))
+                    return null;
+            }
 
 
             return attendee;
@@ -533,7 +608,7 @@ namespace Meso.Volunteer.Controllers
             IEnumerable<object> attendees = allContentItems
                 .Where(x => x.As<CommonPart>().Container != null
                     && _calendarService.DateInRange(x.As<CommonPart>().Container.As<SchedulePart>(), startDate, endDate))
-                .Select(a => getAttendee(a, false));
+                .Select(a => getAttendee(a, null, false));
             if (attendees == null)
                 return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 

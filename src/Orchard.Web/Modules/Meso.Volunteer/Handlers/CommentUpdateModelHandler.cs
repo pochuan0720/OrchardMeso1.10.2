@@ -15,10 +15,12 @@ namespace Meso.Volunteer.Handlers
                 if (typeof(CommentPart) == model.GetType())
                 {
                     dynamic _model = model;
-
-                    _model.CommentText = root["CommentText"].ToString();
-                    _model.CommentedOn = (int)root["CommentedOn"];
-                    _model.RepliedOn = (int)root["RepliedOn"];
+                    if(root["CommentText"] != null)
+                        _model.CommentText = root["CommentText"].ToString();
+                    if(root["CommentedOn"] !=null)
+                        _model.CommentedOn = (int)root["CommentedOn"];
+                    if(root["RepliedOn"] != null)
+                        _model.RepliedOn = (int)root["RepliedOn"];
                     return true;
                 }
                 else

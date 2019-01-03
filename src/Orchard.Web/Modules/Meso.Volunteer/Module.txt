@@ -5,7 +5,7 @@ Website: http://www.meso-tek.com
 Version: 0.1
 OrchardVersion: 10.2
 Description: Description for the module
-Dependencies: Orchard.Users, Orchard.Roles
+Dependencies: Orchard.Users, Orchard.Roles, Orchard.Schedule
 Category: Meso API
 Features:
     Meso.Volunteer:
