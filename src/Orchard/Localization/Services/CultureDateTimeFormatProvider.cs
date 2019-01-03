@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 
 namespace Orchard.Localization.Services {
 
@@ -117,7 +118,7 @@ namespace Orchard.Localization.Services {
 
         public virtual IEnumerable<string> AllTimeFormats {
             get {
-                var patterns = new List<string>();
+                var patterns = new List<string>() { "hh:mm tt", "hh:mm:ss tt" };
                 patterns.AddRange(DateTimeFormat.GetAllDateTimePatterns('t'));
                 patterns.AddRange(DateTimeFormat.GetAllDateTimePatterns('T'));
                 return patterns.Distinct();
@@ -194,6 +195,12 @@ namespace Orchard.Localization.Services {
             get {
                 var culture = CurrentCulture;
                 var calendar = CurrentCalendar;
+
+                if(culture.Name.Equals("zh-TW"))
+                {
+                    culture = (CultureInfo)CultureInfo.CurrentCulture.Clone();
+                    culture.DateTimeFormat.LongTimePattern = "hh:mm:ss tt";
+                }
 
                 var usingCultureCalendar = culture.DateTimeFormat.Calendar.GetType().IsInstanceOfType(calendar);
                 if (!usingCultureCalendar) {
