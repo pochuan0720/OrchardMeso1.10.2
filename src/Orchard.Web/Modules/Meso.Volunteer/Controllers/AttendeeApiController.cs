@@ -22,10 +22,6 @@ using Orchard.Projections.Services;
 using Orchard.Roles.Models;
 using Orchard.Roles.Services;
 using Orchard.Projections.Models;
-using Orchard.Core.Containers.Models;
-using Orchard.Localization.Services;
-using Orchard.Localization.Models;
-using Orchard.Users.Models;
 using Orchard;
 using Meso.Volunteer.Handlers;
 using Meso.Volunteer.Services;
@@ -231,12 +227,15 @@ namespace Meso.Volunteer.Controllers
             if (content == null)
                 return InternalServerError();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.InternalServerError.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.InternalServerError) });
 
+            //_orchardServices.ContentManager.BuildEditor(content);
+
             _orchardServices.ContentManager.Create(content, VersionOptions.Draft);
             //init
             if (inModel["AttendState"] == null)
                 inModel["AttendState"] = false;
             if (inModel["IsAttendFee"] == null)
                 inModel["IsAttendFee"] = false;
+                
 
             var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(inModel));
             _orchardServices.ContentManager.Publish(content.ContentItem);
@@ -247,16 +246,13 @@ namespace Meso.Volunteer.Controllers
         [HttpPost]
         public IHttpActionResult update(JObject inModel)
         {
-            if (inModel == null || inModel["Id"] == null)
+            if (inModel == null || inModel["Id"] == null || inModel["ContentType"] == null)
                 return BadRequest();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 
             var content = _orchardServices.ContentManager.Get((int)inModel["Id"]);//, VersionOptions.DraftRequired);
 
             if (content == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
-
-            if (!_orchardServices.Authorizer.Authorize(Orchard.Schedule.Permissions.ManageSchedules, content, T("Couldn't edit content")))
-                return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't edit content" });
 
             string contentType = GetContentType("Edit", ref inModel);
 

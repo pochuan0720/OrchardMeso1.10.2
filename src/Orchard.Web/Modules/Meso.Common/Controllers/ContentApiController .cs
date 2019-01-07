@@ -14,10 +14,12 @@ using System.Collections.Generic;
 using Orchard.ContentManagement;
 using Orchard.Core.Title.Models;
 
-namespace Meso.Common.Controllers {
+namespace Meso.Common.Controllers
+{
 
     [Authorize]
-    public class ContentApiController : ApiController {
+    public class ContentApiController : ApiController
+    {
         private readonly IOrchardServices _orchardServices;
         private readonly IUpdateModelHandler _updateModelHandler;
         private readonly IProjectionManager _projectionManager;
@@ -25,26 +27,43 @@ namespace Meso.Common.Controllers {
         public ContentApiController(
             IOrchardServices orchardServices,
             IUpdateModelHandler updateModelHandler,
-             IProjectionManager projectionManager) {
+            IProjectionManager projectionManager)
+        {
             _orchardServices = orchardServices;
             _updateModelHandler = updateModelHandler;
             _projectionManager = projectionManager;
         }
 
+
+
         [HttpGet]
-        public IHttpActionResult Get(string Name) {
+        //[AcceptVerbs("OPTIONS")]
+        public IHttpActionResult Get(string culture = null, string Name = null)
+        {
 
-            IEnumerable<ContentItem>  contentItems = _projectionManager.GetContentItems(new QueryModel { Name = Name });
-
-            return Ok(new ResultViewModel { Content = contentItems.Select(x => GetContent(x)), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+            IEnumerable<ContentItem> contentItems = _projectionManager.GetContentItems(new QueryModel { Name = Name });
+            //Action<JObject, string, int> action = (obj, prefix, id) => obj.Add(new JProperty(prefix, GetContent(_orchardServices.ContentManager.Get(id), FillContent)));
+            return Ok(new ResultViewModel { Content = contentItems.Select(x => GetContent(x, FillContent)), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-        private object GetContent(ContentItem item)
+        private object GetContent(ContentItem item, Action<JObject, string, int> fillContent = null)
         {
             JObject obj = new JObject();
+            obj.Add(new JProperty("Id", item.Id));
             obj.Add(new JProperty("Title", item.As<TitlePart>().Title));
             var model = _orchardServices.ContentManager.BuildEditor(item);
-            return UpdateModelHandler.GetData(obj, model);
+            return UpdateModelHandler.GetData(obj, model, fillContent);
+        }
+
+        private void FillContent(JObject obj, string prefix, int id)
+        {
+            obj.Add(new JProperty(prefix, GetContent(_orchardServices.ContentManager.Get(id), FillContent)));
+        }
+
+        [HttpPut]
+        public IHttpActionResult Put(string Name, JObject inModel)
+        {
+            return Ok(new ResultViewModel { Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
     }
 }

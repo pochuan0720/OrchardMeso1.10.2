@@ -12,6 +12,8 @@ using Orchard.Blogs.Handlers;
 using Orchard.Blogs.Models;
 using Orchard.Blogs.Services;
 using Orchard.Blogs.ViewModels;
+using Orchard.Comments.Models;
+using Orchard.Comments.Settings;
 using Orchard.ContentManagement;
 using Orchard.ContentManagement.Aspects;
 using Orchard.Core.Common.Handlers;
@@ -60,12 +62,23 @@ namespace Meso.Volunteer.Controllers {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound)});
 
             var blogPost = Services.ContentManager.New<BlogPostPart>("BlogPost");
+
+            var commentsPart = blogPost.As<CommentsPart>();
+            if (commentsPart != null && !commentsPart.ContentItem.HasDraft() && !commentsPart.ContentItem.HasPublished())
+            {
+                var settings = commentsPart.TypePartDefinition.Settings.GetModel<CommentsPartSettings>();
+                commentsPart.ThreadedComments = settings.DefaultThreadedComments;
+            }
+
             blogPost.BlogPart = content;
 
             if (!Services.Authorizer.Authorize(Permissions.EditBlogPost, blogPost, T("Couldn't create news post")))
                 return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't create news post" });
 
             Services.ContentManager.Create(blogPost, VersionOptions.Draft);
+
+
+
             var model = Services.ContentManager.UpdateEditor(blogPost, _updateModelHandler.SetData(inModel));
 
             if (!Services.Authorizer.Authorize(Permissions.PublishBlogPost, blogPost.ContentItem, T("Couldn't publish blog post")))

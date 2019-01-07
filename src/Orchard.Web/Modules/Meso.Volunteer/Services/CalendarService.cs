@@ -68,29 +68,32 @@ namespace Meso.Volunteer.Services {
             DateTime? publishLater = scheduleEvent.Source.As<PublishLaterPart>().ScheduledPublishUtc.Value;
             ContainerPart containerPart = scheduleEvent.Source.As<ContainerPart>();
             LayoutPart layoutPart = scheduleEvent.Source.As<LayoutPart>();
-            object obj = null;
             SchedulePart schedule = scheduleEvent.Source.As<SchedulePart>();
+            object obj = null;
+            
             if (containerPart != null && withAttendee)
             {
                 IList<string> selectedItemContentTypes = containerPart.ItemContentTypes.Select(x => x.Name).ToList();
 
 
                 IList<object> list = new List<object>();
-                var contentItems = _containerService.GetContentItems(containerPart.Id);
-                foreach (ContentItem _item in contentItems)
+                if (containerPart.ItemCount > 0)
                 {
-                    CommonPart common = _item.As<CommonPart>();
-                    IUser user = common.Owner;
-                    var userModel = _services.ContentManager.BuildEditor(user);
-                    var attendeeModel = _services.ContentManager.BuildEditor(_item);
-                    JObject attendee = Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(new JObject(), attendeeModel);
-                    attendee.Add(new JProperty("Id", _item.Id));
-                    attendee.Add(new JProperty("CreatedUtc", common.CreatedUtc));
-                    attendee.Add(new JProperty("User", Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(JObject.FromObject(user), userModel)));
-                    list.Add(attendee);
+                    var contentItems = _containerService.GetContentItems(containerPart.Id);
+                    foreach (ContentItem _item in contentItems)
+                    {
+                        CommonPart common = _item.As<CommonPart>();
+                        IUser user = common.Owner;
+                        var userModel = _services.ContentManager.BuildEditor(user);
+                        var attendeeModel = _services.ContentManager.BuildEditor(_item);
+                        JObject attendee = Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(new JObject(), attendeeModel);
+                        attendee.Add(new JProperty("Id", _item.Id));
+                        attendee.Add(new JProperty("CreatedUtc", common.CreatedUtc));
+                        attendee.Add(new JProperty("User", Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(JObject.FromObject(user), userModel)));
+                        list.Add(attendee);
+                    }
                 }
 
-                scheduleEvent.Source.As<SchedulePart>();
                 obj = new
                 {
                     Id = scheduleData.Id,
@@ -133,6 +136,7 @@ namespace Meso.Volunteer.Services {
                     PublishLater = publishLater == null ? publishLater : (DateTime)publishLater
                 };
             }
+
             var model = _services.ContentManager.BuildEditor(schedule); ;
             return CalendarUpdateModelHandler.GetData(JObject.FromObject(obj), model);
         }

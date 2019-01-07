@@ -12,7 +12,13 @@ namespace Meso.Common.Routing
                    new HttpRouteDescriptor {
                         Name = "CommonContentApiRoute",
                         Priority = 20,
-                        RouteTemplate = "common/api/content/{Name}",
+                        RouteTemplate = "common/api/{Name}",
+                        Defaults = new  { area = "Meso.Common", controller = "ContentApi"}
+                    },
+                   new HttpRouteDescriptor {
+                        Name = "CommonLangContentApiRoute",
+                        Priority = 20,
+                        RouteTemplate = "common/api/{culture}/{Name}",
                         Defaults = new  { area = "Meso.Common", controller = "ContentApi"}
                     }
             };

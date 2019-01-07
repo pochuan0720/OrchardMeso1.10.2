@@ -1,7 +1,5 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using Orchard.ContentManagement;
-using Orchard.Core.Common.Models;
 using Orchard.Core.Common.OwnerEditor;
 using Orchard.Core.Common.ViewModels;
 using Orchard.Core.Containers.ViewModels;
@@ -12,11 +10,7 @@ using Orchard.Localization.Services;
 using Orchard.Mvc;
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Globalization;
 using System.Linq;
-using System.Reflection;
-using System.Xml;
 
 namespace Orchard.Core.Common.Handlers
 {
@@ -108,6 +102,21 @@ namespace Orchard.Core.Common.Handlers
                     {
                         var node = root[prefix];
                         _model.Value = (bool)node;
+                        return true;
+                    }
+                    else if(type.Equals("Orchard.ContentPicker.ViewModels.ContentPickerFieldViewModel") && root[prefix] != null)
+                    {
+                        
+                        if (root[prefix] is JArray)
+                        {
+                            string values = string.Join(",", root[prefix].ToList());
+                            _model.SelectedIds = values;
+                        }
+                        else
+                        {
+                            _model.SelectedIds = root[prefix].ToString();
+                        }
+
                         return true;
                     }
 
@@ -219,7 +228,8 @@ namespace Orchard.Core.Common.Handlers
                 {
                     entry.Id = int.Parse(value.ToString());
                     entry.IsChecked = true;
-                } catch (Exception e) {};
+                }
+                catch (Exception e) { };
 
                 //UserRoleEntry
                 try
@@ -227,7 +237,8 @@ namespace Orchard.Core.Common.Handlers
                     //entry.RoleId = int.Parse(value.ToString());
                     entry.Name = value.ToString();
                     entry.Granted = true;
-                } catch (Exception e) {};
+                }
+                catch (Exception e) { };
                 checkeds.Add(entry);
             }
 
@@ -235,15 +246,17 @@ namespace Orchard.Core.Common.Handlers
         }
 
 
-        static public JObject GetData(JObject obj, dynamic model)
+        static public JObject GetData(JObject obj, dynamic model, Action<JObject, string, int> fillContent = null)
         {
 
             foreach (var item in model.Content.Items)
             {
-                if (item.TemplateName != null && item.TemplateName.StartsWith("Fields/"))
+                if (item.TemplateName != null && (item.TemplateName.StartsWith("Fields")))
                 {
                     string prefix = ((string)item.Prefix).Split('.')[1];
-                    if (item.TemplateName.Equals("Fields/Input.Edit"))
+                    if (item.TemplateName.Equals("Fields.Common.Text.Edit"))
+                        obj.Add(new JProperty(prefix, item.Model.Text));
+                    else if (item.TemplateName.Equals("Fields/Input.Edit"))
                         obj.Add(new JProperty(prefix, item.Model.Value));
                     else if (item.TemplateName.Equals("Fields/Enumeration.Edit"))
                     {
@@ -257,6 +270,30 @@ namespace Orchard.Core.Common.Handlers
                         }
                         obj.Add(new JProperty(prefix, item.Model.Value));
                     }
+                    else if (item.TemplateName.Equals("Fields/ContentPicker.Edit"))
+                    {
+                        string contentType = ((string)item.Prefix).Split('.')[0];
+                        var value = item.ContentField.PartFieldDefinition.Settings["ContentPickerFieldSettings.Multiple"];
+                        if (Convert.ToBoolean(value))
+                        {
+                            string[] values = item.Model.SelectedIds.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                            JArray list = new JArray();
+                            foreach (var a in values)
+                                list.Add(int.Parse(a));
+
+                            obj.Add(new JProperty(prefix, list));
+                        }
+                        else
+                        {
+                            int id = int.Parse(item.Model.SelectedIds);
+                            if (fillContent != null)
+                                fillContent(obj, prefix, id);
+                            else
+                                obj.Add(new JProperty(prefix, id));
+                        }
+
+
+                    }
                     else if (item.TemplateName.Equals("Fields/Numeric.Edit"))
                         if (string.IsNullOrEmpty(item.Model.Value))
                             obj.Add(new JProperty(prefix, ""));
@@ -269,6 +306,7 @@ namespace Orchard.Core.Common.Handlers
                         List<JObject> list = new List<JObject>();
                         foreach (var a in item.Model.Objects)
                             list.Add(JObject.FromObject(a));
+
                         obj.Add(new JProperty(prefix, list.ToArray()));
                     }
                     else if (item.TemplateName.Equals("Fields/TaxonomyField"))
@@ -287,9 +325,21 @@ namespace Orchard.Core.Common.Handlers
                     //else
                     //    obj.Add(new JProperty(item.Prefix, item.TemplateName));
                 }
+                else if (item.TemplateName != null && item.TemplateName.StartsWith("Parts/"))
+                {
+                    if (item.TemplateName.Equals("Parts/Roles.UserRoles"))
+                    {
+                        if (obj[item.Prefix] != null)
+                            obj.Remove(item.Prefix);
+                        obj.Add(new JProperty(item.Prefix, item.Model.UserRoles.Roles));
+
+                    }
+                }
             }
 
             return obj;
         }
     }
+
+
 }

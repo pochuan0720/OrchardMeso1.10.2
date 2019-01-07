@@ -26,6 +26,7 @@
     <IISExpressWindowsAuthentication />
     <IISExpressUseClassicPipelineMode />
     <UseGlobalApplicationHostFile />
+    <Use64BitIISExpress />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -98,6 +99,7 @@
     <Compile Include="Controllers\AdminCultureSelectorController.cs" />
     <Compile Include="Helpers\ContextHelpers.cs" />
     <Compile Include="Models\TransliterationSpecificationRecord.cs" />
+    <Compile Include="Projections\RouteCultureFilter.cs" />
     <Compile Include="Providers\ContentLocalizationTokens.cs" />
     <Compile Include="Selectors\ContentCultureSelector.cs" />
     <Compile Include="Selectors\RouteCultureSelector.cs" />

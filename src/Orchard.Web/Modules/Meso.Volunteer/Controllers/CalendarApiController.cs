@@ -19,10 +19,10 @@ using Meso.Volunteer.Handlers;
 using Meso.Volunteer.Services;
 using Orchard.Core.Common.Handlers;
 using Orchard.Users.Models;
-using Orchard.Projections.Models;
 using Orchard;
 using Orchard.Schedule.Services;
 using Orchard.Schedule.Models;
+using Orchard.Projections.Models;
 
 namespace Meso.Volunteer.Controllers
 {
@@ -115,7 +115,6 @@ namespace Meso.Volunteer.Controllers
 
             if (allContentItems == null)
                 return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
-
 
             Dictionary<IContent, ScheduleData> ScheduleMap =
                 allContentItems
@@ -229,10 +228,10 @@ namespace Meso.Volunteer.Controllers
                             if (contentType.Equals("Appointment"))
                             {
                                 IUser user = _membershipService.GetUser(place);
-                                var model = _orchardServices.ContentManager.BuildEditor(user);
-                                JObject Data = UpdateModelHandler.GetData(JObject.FromObject(user.As<UserPart>()), model);
                                 if (user != null)
                                 {
+                                    var model = _orchardServices.ContentManager.BuildEditor(user);
+                                    JObject Data = UpdateModelHandler.GetData(JObject.FromObject(user.As<UserPart>()), model);
                                     _inModel["Title"] = Data["Nickname"].ToString();
                                     if (_inModel["PeopleQuota"] == null)
                                         _inModel.Add(new JProperty("PeopleQuota", 100));
