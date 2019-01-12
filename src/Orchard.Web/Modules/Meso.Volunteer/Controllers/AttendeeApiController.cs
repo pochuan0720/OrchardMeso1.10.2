@@ -26,12 +26,14 @@ using Orchard;
 using Meso.Volunteer.Handlers;
 using Meso.Volunteer.Services;
 using System.Net.Http;
+using Orchard.DynamicForms.Services;
 
 namespace Meso.Volunteer.Controllers
 {
     [Authorize]
     public class AttendeeApiController : ApiController
     {
+        private int[] months = {2, 4, 6, 8, 10, 12 };
         private readonly IRoleService _roleService;
         private readonly IMembershipService _membershipService;
         private readonly IScheduleService _scheduleService;
@@ -43,6 +45,7 @@ namespace Meso.Volunteer.Controllers
         private readonly IAuthenticationService _authenticationService;
         private readonly IProjectionManager _projectionManager;
         private static DateTime UnixEpochTime = new DateTime(1970, 1, 1);
+        private readonly IFormService _formService;
 
 
         public AttendeeApiController(
@@ -56,7 +59,8 @@ namespace Meso.Volunteer.Controllers
             IShapeFactory shapeFactory,
             ICalendarUpdateModelHandler updateModelHandler,
             IAuthenticationService authenticationService,
-            IProjectionManager projectionManager
+            IProjectionManager projectionManager,
+            IFormService formService
             )
         {
             _roleService = roleService;
@@ -72,6 +76,7 @@ namespace Meso.Volunteer.Controllers
             Logger = NullLogger.Instance;
             T = NullLocalizer.Instance;
             Shape = shapeFactory;
+            _formService = formService;
         }
 
         public ILogger Logger { get; set; }
@@ -129,7 +134,6 @@ namespace Meso.Volunteer.Controllers
             if (attendees == null)
                 return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
-
             return Ok(new ResultViewModel { Content = attendees, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
@@ -143,8 +147,10 @@ namespace Meso.Volunteer.Controllers
 
             IList<object> list = new List<object>();
             foreach(ContentItem item in contentItems)
-            {   
-                list.Add(getAttendee(item));
+            {
+                object attendee = getAttendee(item);
+                if(attendee != null)
+                    list.Add(attendee);
             }
 
             return Ok(new ResultViewModel { Content = list, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
@@ -175,6 +181,9 @@ namespace Meso.Volunteer.Controllers
                 return BadRequest();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
             }
 
+            if(inModel["ContainerId"] == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = "ContainerId不可為空" });
+
             string contentType = GetContentType("Edit", ref inModel);
 
             if (contentType == null)
@@ -183,23 +192,69 @@ namespace Meso.Volunteer.Controllers
             var containerItem = _orchardServices.ContentManager.Get((int)inModel["ContainerId"], VersionOptions.Published);
 
             if (containerItem == null)
-                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = "尚未發佈" });
 
             IUser user;
-            if (_orchardServices.Authorizer.Authorize(Orchard.Schedule.Permissions.ManageSchedules, T("Not authorized to manage content")) && inModel["Owner"] != null)
+            if (_orchardServices.Authorizer.Authorize(Orchard.Schedule.Permissions.ManageSchedules, T("Not authorized to manage content")))
+            {
+                if(inModel["Owner"] == null)
+                    return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = "指派帳號不可為空" });
+
                 user = _membershipService.GetUser(inModel["Owner"].ToString());
+            }
             else
                 user = _authenticationService.GetAuthenticatedUser();
 
             if (user == null)
-                return NotFound();
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = "帳號不存在" });
+
+            //IContentQuery<ContentItem> contentItems = _orchardServices.ContentManager.Query(VersionOptions.Published, containerItem.ContentType);
+            IEnumerable<ContentItem> contentItems = null;
+            contentItems = _projectionManager.GetContentItems(new QueryModel { Name = contentType });
+            contentItems = contentItems.Where(x => x.As<CommonPart>().Owner != null
+                    && x.As<CommonPart>().Container != null
+                    && x.As<CommonPart>().Owner.Id == user.Id);
+            SchedulePart _schedule = containerItem.As<SchedulePart>();
+            ScheduleOccurrence _occurrence = _scheduleService.GetNextOccurrence(_schedule, _schedule.StartDate);
+            //0.1 判斷是否與其他認養重疊
+            var collection = contentItems
+                .Where(s => _calendarService.DateInRange(s.As<CommonPart>().Container.As<SchedulePart>(), _occurrence.Start.AddMonths(-1), _occurrence.End.AddMonths(1)))
+                .Select(c => _scheduleService.GetNextOccurrence(c.As<CommonPart>().Container.As<SchedulePart>(), c.As<CommonPart>().Container.As<SchedulePart>().StartDate))
+                .Where(o => _calendarService.DateCollection(_occurrence, o.Start, o.End)).FirstOrDefault();
+
+            if (collection != null)
+            {
+                object outModel1 = _calendarService.GetOccurrenceViewModel(collection, new ScheduleData(collection.Source.ContentItem, Url, _slugService, _orchardServices), false);
+                return Ok(new ResultViewModel { Content = outModel1, Success = false, Code = HttpStatusCode.Conflict.ToString("d"), Message = "與其它行程衝突" });
+            }
+
+            //0.2 判斷是否與其他活動重疊
+
+            IEnumerable<ContentItem> eventItems = _orchardServices.ContentManager.Query(VersionOptions.Published, contentType.Replace("Attendee", "Event")).List();
+            //找前後一個月的活動
+            eventItems = eventItems.Where(s => _calendarService.DateInRange(s.As<SchedulePart>(), _occurrence.Start.AddMonths(-1), _occurrence.End.AddMonths(1)));
+            eventItems = eventItems
+                .Where(x => _formService.GetSubmissions(x.Id.ToString()).Select(f => _calendarService.FormDataToDictionary(HttpUtility.ParseQueryString(f.FormData))).Where(d => d.Keys.Contains("Owner") && d["Owner"] != null && d["Owner"].Equals(user.Id.ToString())).FirstOrDefault() != null);
+
+            if (eventItems != null)
+            {
+                collection = eventItems
+                    .Select(c => _scheduleService.GetNextOccurrence(c.As<SchedulePart>(), c.As<SchedulePart>().StartDate))
+                    .Where(o => _calendarService.DateCollection(_occurrence, o.Start, o.End)).FirstOrDefault();
+
+                if (collection != null)
+                {
+                    object outModel2 = _calendarService.GetOccurrenceViewModel(collection, new ScheduleData(collection.Source.ContentItem, Url, _slugService, _orchardServices), false);
+                    return Ok(new ResultViewModel { Content = outModel2, Success = false, Code = HttpStatusCode.Conflict.ToString("d"), Message = "與其它行程衝突" });
+                }
+            }
+
 
             // 1. 檢查是否可參加(一年允許取消六次)
-
             int cancelCount = _orchardServices.ContentManager.Query(VersionOptions.Published, inModel["ContentType"].ToString() + "Cancel").List()
-                .Where(i => i.As<CommonPart>().Owner.Id == user.Id && ((DateTime)i.As<CommonPart>().PublishedUtc).ToString("yyyy").Equals(DateTime.UtcNow.ToString("2019"))).Count();
+                .Where(i => i.As<CommonPart>().Owner != null && i.As<CommonPart>().Owner.Id == user.Id && ((DateTime)i.As<CommonPart>().PublishedUtc).ToString("yyyy").Equals(DateTime.UtcNow.ToString("yyyy"))).Count();
 
-            if (cancelCount > 6)
+            if (cancelCount >= 6)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = "本年度已取消" + cancelCount + "次" });
 
             // 2. 檢查剩餘可參與額度
@@ -213,13 +268,77 @@ namespace Meso.Volunteer.Controllers
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = "額度已滿" });
 
             // 3. 檢查是否已經參加
-
             foreach (JToken attendee in attendees)
             {
                 //JObject attendee = JObject.FromObject(obj);
                 string userName = attendee["User"]["UserName"].ToString();
                 if (userName.Equals(user.UserName))
                     return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Conflict.ToString("d"), Message = "此帳號已經參加" });
+            }
+
+            if (contentType.Equals("Attendee") && months.Contains(DateTime.Now.Month))
+            {
+                if (contentItems != null && contentItems.Count() > 0)
+                {
+                    SchedulePart containerSchedule = containerItem.As<SchedulePart>();
+                    DateTime containerStartDate = containerSchedule.StartDate;
+
+                    if (containerStartDate.Month > 6) // 每年7~12月份服勤
+                    {
+                        //15日以前先開放未達5點之志工登記服勤
+                        if (containerStartDate.Day < 15)
+                        {
+                            int year = DateTime.UtcNow.Year;
+                            DateTime startDate = new DateTime(year, 1, 1);
+                            DateTime endDate = DateTime.UtcNow;
+                            int totalAttendPoint = 0;
+                            contentItems.Where(x => _calendarService.DateInRange(x.As<CommonPart>().Container.As<SchedulePart>(), startDate, endDate) && IsAttended(x, ref totalAttendPoint)).ToList();
+
+                            if(totalAttendPoint >=5 )
+                            {
+                                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = "今年已達點數" + totalAttendPoint + ", 先開放未達5點之志工登記服勤" });
+                            }
+                        }
+                    }
+
+                    //
+                    if (DateTime.Now.Day < 15) //15日以前，每個人限定服勤登記合併得３天，汶水只能認養２天
+                    {
+                        DateTime date = DateTime.UtcNow.AddMonths(1);
+                        DateTime startDate = new DateTime(date.Year, date.Month, 1).ToUniversalTime();
+                        //DateTime endDate = startDate.AddMonths(2);
+
+                        contentItems = contentItems.Where(x => _calendarService.DateInRange(x.As<CommonPart>().Container.As<SchedulePart>(), startDate, DateTime.MaxValue));
+                        int bb = contentItems.Count();
+                        IEnumerable<ScheduleOccurrence> occurrences = contentItems.SelectMany(c => _scheduleService.GetOccurrencesForDateRange(c.As<CommonPart>().Container.As<SchedulePart>(), startDate, DateTime.MaxValue));
+
+                        _occurrence = _scheduleService.GetNextOccurrence(_schedule, startDate);
+                        int attendDays = (_occurrence.End.Date - _occurrence.Start.Date).Days + 1;
+                        int days = 0;
+                        foreach (ScheduleOccurrence occurrence in occurrences)
+                        {
+                            days += (occurrence.End.Date - occurrence.Start.Date).Days + 1;
+                            if (days + attendDays > 3)
+                                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = "含本次合併" + (days + attendDays) + "天, 每個人限定服勤登記合併得3天" });
+                        }
+
+
+                        if (outModel["Place"] != null && outModel["Place"].ToString().Equals("汶水"))
+                        {
+                            days = 0;
+                            int cc = contentItems.Count();
+                            //int dd = contentItems.Where(x => InPlaces(x.As<CommonPart>().Container.As<SchedulePart>(), new[] { outModel["Place"].ToString() })).Count();
+                            occurrences = contentItems.Where(x => InPlaces(x.As<CommonPart>().Container.As<SchedulePart>(), new[] { outModel["Place"].ToString() }))
+                                    .SelectMany(c => _scheduleService.GetOccurrencesForDateRange(c.As<CommonPart>().Container.As<SchedulePart>(), startDate, DateTime.MaxValue));
+                            foreach (ScheduleOccurrence occurrence in occurrences)
+                            {
+                                days += (occurrence.End.Date - occurrence.Start.Date).Days + 1;
+                                if (days + attendDays > 2)
+                                    return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = "汶水含本次合併" + (days + attendDays) + "天, 汶水只能認養2天" });
+                            }
+                        }
+                    }
+                }
             }
 
             var content = _orchardServices.ContentManager.New<ContentPart>(contentType);
@@ -242,6 +361,32 @@ namespace Meso.Volunteer.Controllers
             return Ok(new ResultViewModel { Content = getAttendee(content), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
 
         }
+        private bool IsAttended(IContent content, ref int totalAttendPoint)
+        {
+            var attendeeModel = _orchardServices.ContentManager.BuildEditor(content);
+            JObject attendee = Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(new JObject(), attendeeModel);
+            if (attendee["AttendState"] != null && (bool)attendee["AttendState"])
+            {
+                if(attendee["AttendPoint"] != null && !string.IsNullOrEmpty(attendee["AttendPoint"].ToString()))
+                    totalAttendPoint += (int)attendee["AttendPoint"];
+                return true;
+            }
+            else
+                return false;
+
+        }
+
+        private bool InPlaces(IContent content, string[] places)
+        {
+            var model = _orchardServices.ContentManager.BuildEditor(content);
+            JObject container = Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(new JObject(), model);
+            if (container["Place"] != null && places.Contains(container["Place"].ToString()))
+                return true;
+            else
+                return false;
+
+        }
+
 
         [HttpPost]
         public IHttpActionResult update(JObject inModel)
@@ -361,13 +506,16 @@ namespace Meso.Volunteer.Controllers
                 .Where(x => x.As<CommonPart>().Owner.Id == user.Id 
                     && x.As<CommonPart>().Container != null 
                     && _calendarService.DateInRange(x.As<CommonPart>().Container.As<SchedulePart>(), startDate, endDate))
-                .Select(a => getAttendee(a, null, false));
+                .Select(a => getAttendee(a, null, false)).Where(y => y != null);
+
+
             if (attendees == null)
                 return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
 
             return Ok(new ResultViewModel { Content = attendees, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
+
 
         private object getAttendee(IContent content, JObject inModel = null, bool withUser = true)
         {
@@ -392,8 +540,11 @@ namespace Meso.Volunteer.Controllers
             if (withUser)
             {
                 IUser user = common.Owner;
-                var userModel = _orchardServices.ContentManager.BuildEditor(user);
-                attendee.Add(new JProperty("User", Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(JObject.FromObject(user), userModel)));
+                if (user != null)
+                {
+                    var userModel = _orchardServices.ContentManager.BuildEditor(user);
+                    attendee.Add(new JProperty("User", Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(JObject.FromObject(user), userModel)));
+                }
             }
 
             object containerModel = null;
@@ -536,7 +687,7 @@ namespace Meso.Volunteer.Controllers
 
             //ContentItem.VersionRecord != null && content.ContentItem.VersionRecord.Published
 
-            allContentItems = allContentItems.Select(c => c.As<CommonPart>().Container.ContentItem); ;
+            allContentItems = allContentItems.Where(c => c.As<CommonPart>().Container != null).Select(c => c.As<CommonPart>().Container.ContentItem);
             allContentItems = allContentItems.GroupBy(x => x.Id).Select(g => g.First());
 
             Dictionary<IContent, ScheduleData> ScheduleMap =
@@ -604,7 +755,7 @@ namespace Meso.Volunteer.Controllers
             IEnumerable<object> attendees = allContentItems
                 .Where(x => x.As<CommonPart>().Container != null
                     && _calendarService.DateInRange(x.As<CommonPart>().Container.As<SchedulePart>(), startDate, endDate))
-                .Select(a => getAttendee(a, null, false));
+                .Select(a => getAttendee(a, null, false)).Where(y => y != null); ;
             if (attendees == null)
                 return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 

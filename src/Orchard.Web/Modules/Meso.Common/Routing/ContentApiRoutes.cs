@@ -8,7 +8,7 @@ namespace Meso.Common.Routing
     {
         public IEnumerable<Orchard.Mvc.Routes.RouteDescriptor> GetRoutes()
         {
-            return new[]{
+          return new[]{
                    new HttpRouteDescriptor {
                         Name = "CommonContentApiRoute",
                         Priority = 20,

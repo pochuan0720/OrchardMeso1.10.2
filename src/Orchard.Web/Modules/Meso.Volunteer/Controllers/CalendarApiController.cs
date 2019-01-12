@@ -213,6 +213,14 @@ namespace Meso.Volunteer.Controllers
 
             foreach (string place in inModel["Places"])
             {
+                IUser user = _membershipService.GetUser(place);
+                JObject Data = null;
+                if (user != null)
+                {
+                    var model = _orchardServices.ContentManager.BuildEditor(user);
+                    Data = UpdateModelHandler.GetData(JObject.FromObject(user.As<UserPart>()), model);
+                }
+
                 if (inModel["IsDaily"] != null && (bool)inModel["IsDaily"])
                 {
                     foreach (DateTime day in EachDay((DateTime)inModel["StartDate"], (DateTime)inModel["EndDate"]))
@@ -222,16 +230,16 @@ namespace Meso.Volunteer.Controllers
                         {
                             JObject _inModel = (JObject)inModel.DeepClone();
                             _inModel["StartDate"] = day;
-                            _inModel["EndDate"] = day.AddDays(1).AddMinutes(-1);
+                            _inModel["EndDate"] = day;
 
                             setJObject(_inModel, "Place", place);
                             if (contentType.Equals("Appointment"))
                             {
-                                IUser user = _membershipService.GetUser(place);
-                                if (user != null)
+                                
+                                if (Data != null)
                                 {
-                                    var model = _orchardServices.ContentManager.BuildEditor(user);
-                                    JObject Data = UpdateModelHandler.GetData(JObject.FromObject(user.As<UserPart>()), model);
+                                    //var model = _orchardServices.ContentManager.BuildEditor(user);
+                                    //JObject Data = UpdateModelHandler.GetData(JObject.FromObject(user.As<UserPart>()), model);
                                     _inModel["Title"] = Data["Nickname"].ToString();
                                     if (_inModel["PeopleQuota"] == null)
                                         _inModel.Add(new JProperty("PeopleQuota", 100));

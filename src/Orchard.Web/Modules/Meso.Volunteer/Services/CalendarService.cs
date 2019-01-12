@@ -25,6 +25,7 @@ using Orchard.Localization.Services;
 using Orchard.Users.Models;
 using Orchard.Roles.Models;
 using Orchard.Localization.Models;
+using System.Collections.Specialized;
 
 namespace Meso.Volunteer.Services {
 
@@ -63,7 +64,7 @@ namespace Meso.Volunteer.Services {
             return _scheduleLayoutService.GetOccurrenceObject(scheduleEvent, scheduleData);
         }
 
-        public object GetOccurrenceViewModel(ScheduleOccurrence scheduleEvent, ScheduleData scheduleData, bool withAttendee)
+        public object GetOccurrenceViewModel(ScheduleOccurrence scheduleEvent, ScheduleData scheduleData, bool withAttendee, int userId)
         { 
             DateTime? publishLater = scheduleEvent.Source.As<PublishLaterPart>().ScheduledPublishUtc.Value;
             ContainerPart containerPart = scheduleEvent.Source.As<ContainerPart>();
@@ -75,7 +76,6 @@ namespace Meso.Volunteer.Services {
             {
                 IList<string> selectedItemContentTypes = containerPart.ItemContentTypes.Select(x => x.Name).ToList();
 
-
                 IList<object> list = new List<object>();
                 if (containerPart.ItemCount > 0)
                 {
@@ -83,13 +83,17 @@ namespace Meso.Volunteer.Services {
                     foreach (ContentItem _item in contentItems)
                     {
                         CommonPart common = _item.As<CommonPart>();
-                        IUser user = common.Owner;
-                        var userModel = _services.ContentManager.BuildEditor(user);
+
                         var attendeeModel = _services.ContentManager.BuildEditor(_item);
                         JObject attendee = Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(new JObject(), attendeeModel);
                         attendee.Add(new JProperty("Id", _item.Id));
                         attendee.Add(new JProperty("CreatedUtc", common.CreatedUtc));
-                        attendee.Add(new JProperty("User", Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(JObject.FromObject(user), userModel)));
+                        IUser user = common.Owner;
+                        if(user != null)
+                        {
+                            var userModel = _services.ContentManager.BuildEditor(user);
+                            attendee.Add(new JProperty("User", Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(JObject.FromObject(user), userModel)));
+                        }
                         list.Add(attendee);
                     }
                 }
@@ -108,20 +112,51 @@ namespace Meso.Volunteer.Services {
                 };
                 
             }
-            else if(layoutPart != null && withAttendee)
+            else if(layoutPart != null && withAttendee) //活動報名
             {
                 var submissions = _formService.GetSubmissions(scheduleData.Id.ToString());
-                obj = new
+                if (userId > 0)
                 {
-                    Id = scheduleData.Id,
-                    Title = scheduleData.Title,
-                    Body = scheduleData.Body,
-                    StartDate = TimeZoneInfo.ConvertTimeToUtc(scheduleEvent.Start, schedule.TimeZone),
-                    EndDate = TimeZoneInfo.ConvertTimeToUtc(scheduleEvent.End, schedule.TimeZone),
-                    IsPublished = schedule.IsPublished,
-                    PublishLater = publishLater == null ? publishLater : (DateTime)publishLater,
-                    AttendeeCount = submissions.Count()
-                };
+                    var submission = submissions.Select(s => new { Id = s.Id, EventId = Convert.ToInt32(s.FormName), Submission = FormDataToDictionary(HttpUtility.ParseQueryString(s.FormData)) }).Where(x => x.Submission["Owner"] != null && x.Submission["Owner"].Equals(userId.ToString())).FirstOrDefault();
+                    if (submission != null)
+                    {
+                        obj = new
+                        {
+                            Id = scheduleData.Id,
+                            Title = scheduleData.Title,
+                            Body = scheduleData.Body,
+                            StartDate = TimeZoneInfo.ConvertTimeToUtc(scheduleEvent.Start, schedule.TimeZone),
+                            EndDate = TimeZoneInfo.ConvertTimeToUtc(scheduleEvent.End, schedule.TimeZone),
+                            IsPublished = schedule.IsPublished,
+                            PublishLater = publishLater == null ? publishLater : (DateTime)publishLater,
+                            AttendeeCount = submissions.Count(),
+                        };
+
+                        JObject jObject = CalendarUpdateModelHandler.GetData(JObject.FromObject(obj), _services.ContentManager.BuildEditor(schedule));
+
+                        return new
+                        {
+                            Id = submission.Id,
+                            EventId = submission.EventId,
+                            Form = submission.Submission,
+                            Container = jObject
+                        };
+                    }
+                    else return submission;
+                }
+                else {
+                    obj = new
+                    {
+                        Id = scheduleData.Id,
+                        Title = scheduleData.Title,
+                        Body = scheduleData.Body,
+                        StartDate = TimeZoneInfo.ConvertTimeToUtc(scheduleEvent.Start, schedule.TimeZone),
+                        EndDate = TimeZoneInfo.ConvertTimeToUtc(scheduleEvent.End, schedule.TimeZone),
+                        IsPublished = schedule.IsPublished,
+                        PublishLater = publishLater == null ? publishLater : (DateTime)publishLater,
+                        AttendeeCount = submissions.Count()
+                    };
+                }
             }
             else
             {
@@ -144,7 +179,12 @@ namespace Meso.Volunteer.Services {
         public bool DateInRange(SchedulePart part, DateTime start, DateTime end) {
             return _scheduleLayoutService.DateInRange(part, start, end);
         }
-        
+
+        public bool DateCollection(ScheduleOccurrence occurrence, DateTime start, DateTime end)
+        {
+            return !(occurrence.End < start || occurrence.Start > end);
+        }
+
         public bool DateInFuture(SchedulePart part) {
             return _scheduleLayoutService.DateInFuture(part);
         }
@@ -174,21 +214,31 @@ namespace Meso.Volunteer.Services {
 
         public void Notification(ContentItem content, string contentType, JObject obj)
         {
+            CommonPart common = content.As<CommonPart>();
+            IUser user = common.Owner;
+            if (user == null) //此內容的帳號已經被刪除
+                return;
+
+            SchedulePart schedulePart = content.As<SchedulePart>();
+            if (schedulePart == null)
+            {
+                if (common.Container == null)//此內容的Container已經被刪除
+                    return;
+
+                schedulePart = common.Container.As<SchedulePart>();
+            }
+
+            var scheduleModel = _services.ContentManager.BuildEditor(schedulePart);
+
+            JObject scheduleObject = Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(JObject.FromObject(schedulePart), scheduleModel);
+            ScheduleOccurrence occurrence = new ScheduleOccurrence(schedulePart, schedulePart.StartDate);
+
+
             if (obj == null)
                 obj = new JObject();
 
             //New a Cancel Content
             var cancelItem = _services.ContentManager.New<ContentPart>(contentType);
-
-            CommonPart common = content.As<CommonPart>();
-            SchedulePart schedulePart = content.As<SchedulePart>();
-            if(schedulePart == null)
-                schedulePart = common.Container.As<SchedulePart>();
-            var scheduleModel = _services.ContentManager.BuildEditor(schedulePart);
-
-            JObject scheduleObject = Orchard.Core.Common.Handlers.UpdateModelHandler.GetData(JObject.FromObject(schedulePart), scheduleModel);
-            ScheduleOccurrence occurrence = new ScheduleOccurrence(schedulePart, schedulePart.StartDate);
-            IUser user = common.Owner;
 
             _services.ContentManager.Create(cancelItem, VersionOptions.Draft);
             //AttendeeCancelViewMode cancelModel = new AttendeeCancelViewMode();
@@ -282,6 +332,24 @@ namespace Meso.Volunteer.Services {
                         return "MM/dd/yyyy";
                 }
             }
+        }
+
+        public Dictionary<string, object> FormDataToDictionary(NameValueCollection nvc)
+        {
+            Dictionary<string, object> dict = new Dictionary<string, object>();
+            foreach (var key in nvc.AllKeys)
+            {
+                string value = string.Join(",", nvc.GetValues(key));
+                if (value.Contains(","))
+                    dict.Add(key, value.Split(','));
+                else
+                {
+                    dict.Add(key, value);
+                }
+
+            }
+
+            return dict;
         }
     }
 }

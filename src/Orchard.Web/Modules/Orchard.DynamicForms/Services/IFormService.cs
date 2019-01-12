@@ -18,6 +18,7 @@ namespace Orchard.DynamicForms.Services {
         NameValueCollection SubmitForm(IContent content, Form form, IValueProvider valueProvider, ModelStateDictionary modelState, IUpdateModel updater);
         Submission CreateSubmission(string formName, NameValueCollection values);
         Submission CreateSubmission(Submission submission);
+        Submission UpdateSubmission(Submission submission);        //Meso add by Frank Chen, 20190108
         Submission GetSubmission(int id);
         IPageOfItems<Submission> GetSubmissions(string formName = null, int? skip = null, int? take = null);
         void DeleteSubmission(Submission submission);

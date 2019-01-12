@@ -46,7 +46,7 @@ namespace Meso.Volunteer.Handlers
                     _model.EndTime = _dateLocalizationServices.ConvertToLocalizedTimeString(end, new DateLocalizationOptions() { EnableTimeZoneConversion = false });
                     return true;
                 }
-                else if (typeof(LayoutPartViewModel) == model.GetType() && root["Form"] != null)
+                else if (typeof(LayoutPartViewModel) == model.GetType())// && root["Form"] != null)
                 {
                     dynamic _model = model;
                     LayoutEditor editor = _model.LayoutEditor;
@@ -59,22 +59,25 @@ namespace Meso.Volunteer.Handlers
                         json = "{\"type\":\"Canvas\",\"children\":[{\"type\":\"Form\",\"data\":\"StoreSubmission=true\",\"contentType\":\"Orchard.DynamicForms.Elements.Form\",\"children\":[]}]}";
 
                     JObject layout = JObject.Parse(json);
-
-                    JToken items = root["Form"];
                     var newItems = new JArray();
-                    foreach (var child in items)
+                    if (root["Form"] != null)
                     {
-                        JObject obj = new JObject();
-                        obj.Add(new JProperty("type", "Content"));
-                        if (child["ContentType"].ToString().Equals("NumericField"))
+                        JToken items = root["Form"];
+
+                        foreach (var child in items)
                         {
-                            child["Data"]["Options"] = new JArray();
-                            child["ContentType"] = "TextField";
+                            JObject obj = new JObject();
+                            obj.Add(new JProperty("type", "Content"));
+                            if (child["ContentType"].ToString().Equals("NumericField"))
+                            {
+                                child["Data"]["Options"] = new JArray();
+                                child["ContentType"] = "TextField";
+                            }
+                            var query = String.Join("&", child["Data"].Children().Cast<JProperty>().Select(jp => jp.Name + "=" + getValue(jp.Value)));
+                            obj.Add(new JProperty("data", query));
+                            obj.Add(new JProperty("contentType", "Orchard.DynamicForms.Elements." + child["ContentType"]));
+                            newItems.Add(obj);
                         }
-                        var query = String.Join("&", child["Data"].Children().Cast<JProperty>().Select(jp => jp.Name + "=" + getValue(jp.Value)));
-                        obj.Add(new JProperty("data", query));
-                        obj.Add(new JProperty("contentType", "Orchard.DynamicForms.Elements." + child["ContentType"]));
-                        newItems.Add(obj);
                     }
                     //Add owner
                     //newItems.Add(JObject.Parse("{\"type\":\"Content\",\"data\":\"InputName=Owner\",\"contentType\":\"Orchard.DynamicForms.Elements.TextField\"}"));

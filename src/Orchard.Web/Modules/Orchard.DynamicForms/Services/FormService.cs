@@ -129,6 +129,12 @@ namespace Orchard.DynamicForms.Services {
             return submission;
         }
 
+        public Submission UpdateSubmission(Submission submission)
+        {
+            _submissionRepository.Update(submission);
+            return submission;
+        }
+
         public Submission GetSubmission(int id) {
             return _submissionRepository.Get(id);
         }
