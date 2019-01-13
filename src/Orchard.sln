@@ -285,6 +285,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Meso.Common", "Orchard.Web\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Meso.TyMetro", "Orchard.Web\Modules\Meso.TyMetro\Meso.TyMetro.csproj", "{F7C315FE-C1EF-4C94-A9A2-971A1C17B517}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TYMetro.Management.Api", "..\..\..\..\TyMetro\tymetro-management\TYMetro.Management.Api\TYMetro.Management.Api.csproj", "{13A3EB89-E991-4EA3-982A-CCC7BA0AE395}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CodeCoverage|Any CPU = CodeCoverage|Any CPU
@@ -1161,6 +1163,16 @@ Global
 		{F7C315FE-C1EF-4C94-A9A2-971A1C17B517}.FxCop|Any CPU.Build.0 = Release|Any CPU
 		{F7C315FE-C1EF-4C94-A9A2-971A1C17B517}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F7C315FE-C1EF-4C94-A9A2-971A1C17B517}.Release|Any CPU.Build.0 = Release|Any CPU
+		{13A3EB89-E991-4EA3-982A-CCC7BA0AE395}.CodeCoverage|Any CPU.ActiveCfg = Release|Any CPU
+		{13A3EB89-E991-4EA3-982A-CCC7BA0AE395}.CodeCoverage|Any CPU.Build.0 = Release|Any CPU
+		{13A3EB89-E991-4EA3-982A-CCC7BA0AE395}.Coverage|Any CPU.ActiveCfg = Release|Any CPU
+		{13A3EB89-E991-4EA3-982A-CCC7BA0AE395}.Coverage|Any CPU.Build.0 = Release|Any CPU
+		{13A3EB89-E991-4EA3-982A-CCC7BA0AE395}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{13A3EB89-E991-4EA3-982A-CCC7BA0AE395}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{13A3EB89-E991-4EA3-982A-CCC7BA0AE395}.FxCop|Any CPU.ActiveCfg = Release|Any CPU
+		{13A3EB89-E991-4EA3-982A-CCC7BA0AE395}.FxCop|Any CPU.Build.0 = Release|Any CPU
+		{13A3EB89-E991-4EA3-982A-CCC7BA0AE395}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{13A3EB89-E991-4EA3-982A-CCC7BA0AE395}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1253,9 +1265,10 @@ Global
 		{E60940A1-405C-452F-8DC4-024EA485E30A} = {E9C9F120-07BA-4DFB-B9C3-3AFB9D44C9D5}
 		{5A5C9DAD-88EA-436C-969C-9510A593F58E} = {E9C9F120-07BA-4DFB-B9C3-3AFB9D44C9D5}
 		{F7C315FE-C1EF-4C94-A9A2-971A1C17B517} = {E9C9F120-07BA-4DFB-B9C3-3AFB9D44C9D5}
+		{13A3EB89-E991-4EA3-982A-CCC7BA0AE395} = {E9C9F120-07BA-4DFB-B9C3-3AFB9D44C9D5}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {90583CE0-B8ED-40B2-8F42-71D37AC1B783}
 		EnterpriseLibraryConfigurationToolBinariesPath = packages\TransientFaultHandling.Core.5.1.1209.1\lib\NET4
+		SolutionGuid = {90583CE0-B8ED-40B2-8F42-71D37AC1B783}
 	EndGlobalSection
 EndGlobal

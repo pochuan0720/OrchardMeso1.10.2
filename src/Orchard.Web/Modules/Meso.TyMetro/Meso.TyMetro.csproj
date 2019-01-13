@@ -79,6 +79,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Controllers\GoTimeApiController.cs" />
     <Compile Include="Controllers\StationsApiController.cs" />
     <Compile Include="Controllers\AccountApiController .cs" />
     <Compile Include="Controllers\AccessibilityReservationApiController .cs" />
@@ -87,12 +88,16 @@
     <Compile Include="Handlers\AccessibilityReservationUpdateModelHandler.cs" />
     <Compile Include="Handlers\IAccessibilityReservationUpdateModelHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Routing\GoTimeApiRoutes.cs" />
     <Compile Include="Routing\StationsApiRoutes.cs" />
     <Compile Include="Routing\AccessibilityServiceItemsApiRoutes.cs" />
     <Compile Include="Routing\AccessibilityReservationApiRoutes.cs" />
     <Compile Include="Routing\RoleApiRoutes.cs" />
     <Compile Include="Routing\UsersApiRoutes.cs" />
+    <Compile Include="Services\TyMetroService.cs" />
+    <Compile Include="Services\ITyMetroService.cs" />
     <Compile Include="ViewModels\AccessibilityReservationApiViewModel.cs" />
+    <Compile Include="ViewModels\GoTimeDataModel.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="favicon.ico" />
@@ -116,6 +121,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\..\..\TyMetro\tymetro-management\TYMetro.Management.Api\TYMetro.Management.Api.csproj">
+      <Project>{13a3eb89-e991-4ea3-982a-ccc7ba0ae395}</Project>
+      <Name>TYMetro.Management.Api</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\Core\Orchard.Core.csproj">
       <Project>{9916839c-39fc-4ceb-a5af-89ca7e87119f}</Project>
       <Name>Orchard.Core</Name>
