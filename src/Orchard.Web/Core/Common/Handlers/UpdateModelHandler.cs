@@ -285,11 +285,14 @@ namespace Orchard.Core.Common.Handlers
                         }
                         else
                         {
-                            int id = int.Parse(item.Model.SelectedIds);
-                            if (fillContent != null)
-                                fillContent(obj, prefix, id);
-                            else
-                                obj.Add(new JProperty(prefix, id));
+                            if (!string.IsNullOrEmpty(item.Model.SelectedIds))
+                            {
+                                int id = int.Parse(item.Model.SelectedIds);
+                                if (fillContent != null)
+                                    fillContent(obj, prefix, id);
+                                else
+                                    obj.Add(new JProperty(prefix, id));
+                            }
                         }
 
 
@@ -300,7 +303,10 @@ namespace Orchard.Core.Common.Handlers
                         else
                             obj.Add(new JProperty(prefix, int.Parse(item.Model.Value)));
                     else if (item.TemplateName.Equals("Fields/DateTime.Edit"))
-                        obj.Add(new JProperty(prefix, item.ContentField.DateTime));
+                    {
+                        if(obj[prefix] == null)
+                            obj.Add(new JProperty(prefix, item.ContentField.DateTime));
+                    }
                     else if (item.TemplateName.Equals("Fields/MediaLibraryPicker.Edit"))
                     {
                         List<JObject> list = new List<JObject>();

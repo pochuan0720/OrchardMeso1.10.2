@@ -6,6 +6,7 @@ using System.Web;
 namespace Orchard.Projections {
     public enum  QueryVersionScopeOptions {
         Published,
-        Latest
+        Latest,
+        Draft
     }
 }

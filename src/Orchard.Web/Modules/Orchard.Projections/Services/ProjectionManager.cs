@@ -230,9 +230,15 @@ namespace Orchard.Projections.Services {
                 if (versionScope == QueryVersionScopeOptions.Latest) {
                     contentQuery = _contentManager.HqlQuery().ForVersion(VersionOptions.Latest);
                 }
-                else {
+                else if(versionScope == QueryVersionScopeOptions.Draft)
+                {
+                    contentQuery = _contentManager.HqlQuery().ForVersion(VersionOptions.Draft);
+                }
+                else
+                {
                     contentQuery = _contentManager.HqlQuery().ForVersion(VersionOptions.Published);
                 }
+
 				var extraGroup = extraPartRecord == null ? null : extraPartRecord.FilterGroups.Where(g => g.Id == group.Id).SingleOrDefault();
                 
 				// iterate over each filter to apply the alterations to the query object
