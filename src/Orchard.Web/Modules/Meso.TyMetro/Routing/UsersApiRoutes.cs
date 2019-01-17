@@ -10,9 +10,9 @@ namespace Meso.TyMetro.Routing
         {
             return new[]{
                  new HttpRouteDescriptor {
-						Name = "VolunteerUserApiRoute",
+						Name = "TyMetroUserApiRoute",
 						Priority = 20,
-						RouteTemplate = "tymetro/api/users/{action}",
+						RouteTemplate = "api/users/{action}",
 						Defaults = new	{ area = "Meso.TyMetro", controller = "AccountApi"}		
 				 }
             };

@@ -5,7 +5,7 @@ using TYMetro.Management.Api.Models.Time;
 namespace Meso.TyMetro.ViewModels
 {
     [JsonObject(MemberSerialization.OptIn)]
-    public class GoTimeDataModel
+    public class GoTimeViewModel
     {
         [JsonProperty]
         public int Id { get; set; }
@@ -19,21 +19,24 @@ namespace Meso.TyMetro.ViewModels
         public string DepOrArr { get; set; }
         [JsonProperty]
         public TimeSpan GoTime { get; set; }
-        [JsonProperty]
-        public DateTime GoDateTimeUtc { get; set; }
+        //[JsonProperty]
+        //public DateTime GoDateTimeUtc { get; set; }
         [JsonProperty]
         public char CarDirection { get; set; }
+        [JsonProperty]
+        public string CarNumber { get; set; }
 
         //Other Query
-        public string DepCode { get; set; }
-        public string ArrCode { get; set; }
+        public int ARId { get; set; }
+        public int DepId { get; set; }
+        public int ArrId { get; set; }
         public bool? IsDelete { get; set; } = false;
 
-        public GoTimeDataModel()
+        public GoTimeViewModel()
         {
         }
 
-        public GoTimeDataModel(GoTimeListDataModel inMoidel)
+        public GoTimeViewModel(GoTimeListDataModel inMoidel)
         {
             Id = (int)inMoidel.ID;
             TimeTable = inMoidel.TimeTable;
@@ -43,11 +46,12 @@ namespace Meso.TyMetro.ViewModels
             //CarType = inMoidel.CarType;
             DepOrArr = inMoidel.DepOrArr;
             GoTime = (TimeSpan)inMoidel.GoTime;
-            GoDateTimeUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Now.Date.Add(GoTime));
+            //GoDateTimeUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Now.Date.Add(GoTime));
             CarDirection = (char)inMoidel.CarDirection;
+            CarNumber = inMoidel.CarNumber;
         }
 
-        public GoTimeListQueryModel ToGoTimeListQueryModel()
+        public GoTimeListQueryModel ToQueryModel()
         {
             return new GoTimeListQueryModel
             {

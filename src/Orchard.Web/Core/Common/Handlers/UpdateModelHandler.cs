@@ -56,7 +56,7 @@ namespace Orchard.Core.Common.Handlers
             string type = model.GetType().ToString();
             if (root != null)
             {
-                if (type.StartsWith("Orchard.Fields.Fields") || type.EndsWith("FieldViewModel"))
+                if (type.StartsWith("Orchard.Fields.Fields") || type.EndsWith("FieldViewModel") || typeof(TextFieldDriverViewModel) == model.GetType())
                 {
                     prefix = prefix.Split('.')[1];
                     if (type.Equals("Orchard.MediaLibrary.ViewModels.MediaLibraryPickerFieldViewModel") && root[prefix] != null)
@@ -331,7 +331,7 @@ namespace Orchard.Core.Common.Handlers
                     //else
                     //    obj.Add(new JProperty(item.Prefix, item.TemplateName));
                 }
-                else if (item.TemplateName != null && item.TemplateName.StartsWith("Parts/"))
+                else if (item.TemplateName != null && (item.TemplateName.StartsWith("Parts/")))// || item.TemplateName.StartsWith("Parts.")))
                 {
                     if (item.TemplateName.Equals("Parts/Roles.UserRoles"))
                     {
@@ -340,6 +340,13 @@ namespace Orchard.Core.Common.Handlers
                         obj.Add(new JProperty(item.Prefix, item.Model.UserRoles.Roles));
 
                     }
+                    /*else if (item.TemplateName.Equals("Parts.Common.Container"))
+                    {
+                        if (obj[item.Prefix] != null)
+                            obj.Remove(item.Prefix);
+                        obj.Add(new JProperty(item.Prefix, item.Model.UserRoles.Roles));
+
+                    }*/
                 }
             }
 

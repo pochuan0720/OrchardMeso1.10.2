@@ -23,7 +23,7 @@ using Orchard.Users.ViewModels;
 using System.Collections.Generic;
 using System.Web;
 
-namespace Meso.Volunteer.Controllers {
+namespace Meso.TyMetro.Controllers {
     [Authorize]
     public class AccountApiController : ApiController {
         private readonly IMembershipService _membershipService;

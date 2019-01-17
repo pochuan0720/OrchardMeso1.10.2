@@ -2,7 +2,7 @@
 using Orchard.Mvc.Routes;
 using Orchard.WebApi.Routes;
 
-namespace Meso.TyMetro.Routing.Api
+namespace Meso.TyMetro.Routing
 {
     public class RoleApiRoutes : IHttpRouteProvider
     {
@@ -12,7 +12,7 @@ namespace Meso.TyMetro.Routing.Api
                  new HttpRouteDescriptor {
 						Name = "TyMetroRoleApiRoute",
 						Priority = 20,
-						RouteTemplate = "tymetro/api/roles/{action}",
+						RouteTemplate = "api/roles/{action}",
 						Defaults = new	{ area = "Meso.TyMetro", controller = "RoleApi"}		
 				 }
             };
