@@ -225,23 +225,26 @@ namespace Meso.Volunteer.Controllers {
                 pager = new Pager(_siteService.GetSiteSettings(), _pager.Page, _pager.PageSize, totalItemCount);
             }
 
-            IList<object> newsPosts;
+            IList<JObject> newsPosts;
 
             if (pager != null)
             {
-                newsPosts = _blogPostService.Get(blogPart, pager.GetStartIndex(), pager.PageSize, VersionOptions.Latest).Select( x => getData(x.As<BlogPostPart>())).ToList();
+                newsPosts = _blogPostService.Get(blogPart, pager.GetStartIndex(), pager.PageSize, VersionOptions.Latest).Select( x => getData(x.As<BlogPostPart>())).OrderByDescending(o => (int)o["Position"]).ToList();
                 pager.PageSize = newsPosts.Count;
             }
             else
-                newsPosts = _blogPostService.Get(blogPart, VersionOptions.Latest).Select(x => getData(x.As<BlogPostPart>())).ToList();
+                newsPosts = _blogPostService.Get(blogPart, VersionOptions.Latest).Select(x => getData(x.As<BlogPostPart>())).OrderByDescending(o => (int)o["Position"]).ToList();
 
             return Ok(new ResultViewModel { Content = new { NewsId = newsId, Data = newsPosts, Pager = pager }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
-        private object getData(BlogPostPart part)
+        private JObject getData(BlogPostPart part)
         {
             var model = Services.ContentManager.BuildEditor(part);
             JObject obj = UpdateModelHandler.GetData(JObject.FromObject(part), model);
+            if (obj["Position"] == null || string.IsNullOrEmpty(obj["Position"].ToString()))
+                obj["Position"] = 0;
+
             return obj;
         }
     }

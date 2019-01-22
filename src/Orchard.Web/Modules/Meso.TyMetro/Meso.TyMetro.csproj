@@ -112,6 +112,7 @@
     <Compile Include="Services\TyMetroService.cs" />
     <Compile Include="Services\ITyMetroService.cs" />
     <Compile Include="ViewModels\AccessibilityReservationApiViewModel.cs" />
+    <Compile Include="ViewModels\CalendarViewModel.cs" />
     <Compile Include="ViewModels\StationViewModel.cs" />
     <Compile Include="ViewModels\UserBodyViewModel.cs" />
     <Compile Include="ViewModels\UserViewMode.cs" />

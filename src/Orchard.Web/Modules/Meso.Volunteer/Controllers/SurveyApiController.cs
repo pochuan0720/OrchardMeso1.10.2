@@ -1,4 +1,5 @@
-﻿using Meso.Volunteer.Services;
+﻿using Meso.Volunteer.Handlers;
+using Meso.Volunteer.Services;
 using Meso.Volunteer.ViewModels;
 using Newtonsoft.Json.Linq;
 using Orchard;
@@ -20,6 +21,7 @@ using Orchard.Roles.Services;
 using Orchard.Schedule.Models;
 using Orchard.Schedule.Services;
 using Orchard.Security;
+using Orchard.Users.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -109,10 +111,14 @@ namespace Meso.Volunteer.Controllers
                 {
                     if(key.Equals("Owner") && isDetailOwner)
                     {
-                        IUser user = _membershipService.GetUser(value);
-                        var model = _orchardServices.ContentManager.BuildEditor(user);
-                        JObject obj = UpdateModelHandler.GetData(JObject.FromObject(user), model);
-                        dict.Add(key, new { UserName = user .UserName, Name = obj["Name"] });
+                        //IUser user = _membershipService.GetUser(value);
+                        IUser user = _orchardServices.ContentManager.Get<UserPart>(int.Parse(value));
+                        if (user != null)
+                        {
+                            var model = _orchardServices.ContentManager.BuildEditor(user);
+                            JObject obj = UpdateModelHandler.GetData(JObject.FromObject(user), model);
+                            dict.Add(key, new { Id = user.Id, UserName = user.UserName, Name = obj["Name"] });
+                        }
                     }
                     else
                         dict.Add(key, value);
@@ -140,8 +146,11 @@ namespace Meso.Volunteer.Controllers
             if (layout == null)
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
 
-            var model = _orchardServices.ContentManager.BuildEditor(content);
-            JObject Data = UpdateModelHandler.GetData(JObject.FromObject(content), model);
+            SchedulePart schedule = content.As<SchedulePart>();
+            //var model = _orchardServices.ContentManager.BuildEditor(schedule);
+            //JObject Data = CalendarUpdateModelHandler.GetData(JObject.FromObject(schedule), model);
+            object _outModel = _calendarService.GetOccurrenceViewModel(new ScheduleOccurrence(schedule, schedule.StartDate), new ScheduleData(content, Url, _slugService, _orchardServices));
+            JObject Data = JObject.FromObject(_outModel);
             DateTime applyStartDate = (DateTime)Data["ApplyStartDate"];
             DateTime applyEndDate = (DateTime)Data["ApplyEndDate"];
             DateTime now = DateTime.UtcNow;
@@ -347,6 +356,46 @@ namespace Meso.Volunteer.Controllers
         }
 
         [HttpPost]
+        public IHttpActionResult delete(JObject inModel)
+        {
+            if (inModel == null || inModel["EventId"] == null || inModel["Id"] == null)
+                return BadRequest();
+
+            int eventId = (int)inModel["EventId"];
+            ContentItem eventContent = _orchardServices.ContentManager.Get(eventId, VersionOptions.Published);
+            if (eventContent == null)
+                return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+
+            /*int contentId = (int)inModel["Id"];
+          ContentItem content = _orchardServices.ContentManager.Get(contentId, VersionOptions.Latest);
+           if (content == null)
+               return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+               */
+
+            if (!_orchardServices.Authorizer.Authorize(Orchard.Schedule.Permissions.ManageSchedules))
+            {
+                var model = _orchardServices.ContentManager.BuildEditor(eventContent);
+                JObject Data = UpdateModelHandler.GetData(JObject.FromObject(eventContent), model);
+                DateTime applyStartDate = (DateTime)Data["ApplyStartDate"];
+                DateTime applyEndDate = (DateTime)Data["ApplyEndDate"];
+                DateTime now = DateTime.UtcNow;
+                if (now < applyStartDate || now > applyEndDate.AddDays(1))
+                    return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = "已非可參加期限內" });
+            }
+
+            //string formName = content.Id.ToString();
+
+            var submission = _formService.GetSubmission((int)inModel["Id"]);
+            if (submission == null)
+                return NotFound();
+
+            _formService.DeleteSubmission(submission);
+
+            return Ok(new ResultViewModel { Content = new { Id = submission.Id, EventId = Convert.ToInt32(submission.FormName), Form = ToDictionary(HttpUtility.ParseQueryString(submission.FormData), true) }, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+        }
+
+        [HttpPost]
         public IHttpActionResult self(JObject inModel)
         {
             if (inModel == null || inModel["Query"] == null)
@@ -433,6 +482,8 @@ namespace Meso.Volunteer.Controllers
             string formName = content.Id.ToString();
             var submissions = _formService.GetSubmissions(formName);
             var list = submissions.Select(s => HttpUtility.ParseQueryString(s.FormData)).ToList();
+            if(list.Count <= 0)
+                return Ok(new ResultViewModel { Content = new JObject(), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
 
             NameValueCollection allData = new NameValueCollection();
             foreach(var item in list)
@@ -449,38 +500,48 @@ namespace Meso.Volunteer.Controllers
             var form = _formService.FindForm(layoutPart, formName);
 
 
-
+            //問卷有幾個選項
             var Options = form.Elements.Where(x => x.Data.ContainsKey("Options")).ToDictionary(y => y.Data["InputName"], y => y.Data["Options"].Split('\n'));
             JObject obj = new JObject();
             foreach(var option in Options)
             {
-                int total = allData.GetValues(option.Key).Count();
+                //每一選項總共有幾個回答
+                List<string> values = allData.GetValues(option.Key) == null ? new List<string>() : allData.GetValues(option.Key).ToList();
+                int total = values.Count();
                 JObject objAnswer = new JObject();
-                double start = 1;
-                for (int i=0;i< option.Value.Length;i++)// answer in option.Value)
+                if (total <= 0)
                 {
-                    JObject objData = new JObject();
-                    string answer = option.Value[i];
-                    if (string.IsNullOrEmpty(answer))
-                    {
-                        List<string> a = allData.GetValues(option.Key).ToList();
-                        int count = allData.GetValues(option.Key).Select(x => int.Parse(x)).ToList().Sum();
-                        objAnswer.Add(new JProperty("Count", count));
-                    }
-                    else
-                    {
-                        List<string> a = allData.GetValues(option.Key).Where(x => x.Equals(answer)).ToList();
-                        int count = a.Count();
-                        double ratio = Math.Round((double)a.Count() / total, 2);// decimal.Round(a.Count() / total, 2);
-                        JObject d = new JObject();
-                        d.Add(new JProperty("Count", count));
-                        if (i == option.Value.Length - 1)
-                            d.Add(new JProperty("Ratio", Math.Round(start, 2)));
-                        else
-                            d.Add(new JProperty("Ratio", ratio));
+                    int count = values.Select(x => int.Parse(x)).ToList().Sum();
+                    objAnswer.Add(new JProperty("Count", count));
+                }
+                else
+                {
 
-                        objAnswer.Add(new JProperty(answer, d));
-                        start = start - ratio;
+                    double start = 1;
+                    for (int i = 0; i < option.Value.Length; i++)// answer in option.Value)
+                    {
+                        JObject objData = new JObject();
+                        string answer = option.Value[i];
+                        if (string.IsNullOrEmpty(answer))
+                        {
+                            int count = values.Select(x => int.Parse(x)).ToList().Sum();
+                            objAnswer.Add(new JProperty("Count", count));
+                        }
+                        else
+                        {
+                            List<string> a = values.Where(x => x.Equals(answer)).ToList();
+                            int count = a.Count();
+                            double ratio = Math.Round((double)a.Count() / total, 2);// decimal.Round(a.Count() / total, 2);
+                            JObject d = new JObject();
+                            d.Add(new JProperty("Count", count));
+                            if (i == option.Value.Length - 1)
+                                d.Add(new JProperty("Ratio", Math.Round(start, 2)));
+                            else
+                                d.Add(new JProperty("Ratio", ratio));
+
+                            objAnswer.Add(new JProperty(answer, d));
+                            start = start - ratio;
+                        }
                     }
                 }
 

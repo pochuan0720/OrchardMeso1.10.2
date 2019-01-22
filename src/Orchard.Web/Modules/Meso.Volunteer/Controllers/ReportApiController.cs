@@ -4,6 +4,7 @@ using Newtonsoft.Json.Linq;
 using Orchard;
 using Orchard.Autoroute.Services;
 using Orchard.ContentManagement;
+using Orchard.Core.Common.Models;
 using Orchard.Core.Common.ViewModels;
 using Orchard.Projections.Models;
 using Orchard.Roles.Models;
@@ -28,6 +29,7 @@ namespace Meso.Volunteer.Controllers
         private readonly IAuthenticationService _authenticationService;
         private readonly IOrchardServices _orchardServices;
         private readonly ISlugService _slugService;
+        private readonly IAttendeeService _attendeeService;
 
         public ReportApiController(
             IRoleService roleService,
@@ -35,7 +37,8 @@ namespace Meso.Volunteer.Controllers
             ICalendarService calendarService,
             IAuthenticationService authenticationService,
             IOrchardServices orchardServices,
-            ISlugService slugService)
+            ISlugService slugService,
+             IAttendeeService attendeeService)
         {
             _roleService = roleService;
             _scheduleService = scheduleService;
@@ -43,6 +46,7 @@ namespace Meso.Volunteer.Controllers
             _authenticationService = authenticationService;
             _orchardServices = orchardServices;
             _slugService = slugService;
+            _attendeeService = attendeeService;
         }
 
 
@@ -53,49 +57,8 @@ namespace Meso.Volunteer.Controllers
                 return BadRequest();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
 
             IEnumerable<ContentItem> allContentItems = null;
-            string queryName = "";
-            //string attendeeName = "";
             IUser user = _authenticationService.GetAuthenticatedUser();
-            UserRolesPart rolesPart = user.As<UserRolesPart>();
-
-            if (rolesPart != null)
-            {
-                IEnumerable<string> userRoles = rolesPart.Roles;
-                foreach (var role in userRoles)
-                {
-                    foreach (var permissionName in _roleService.GetPermissionsForRoleByName(role))
-                    {
-                        string possessedName = permissionName;
-                        if (possessedName.StartsWith("View_" + inModel.ContentType))
-                        {
-                            queryName = possessedName.Substring("View_".Length);
-                            //IEnumerable<ContentItem> contentItems = _scheduleLayoutService.GetProjectionContentItems(new QueryModel { Name = queryName});
-                            IEnumerable<ContentItem> contentItems;
-
-                            if (_orchardServices.Authorizer.Authorize(Orchard.Schedule.Permissions.ManageSchedules))
-                            {
-                                //contentItems = _calendarService.GetProjectionContentItems(new QueryModel { Name = "Latest_" + queryName });
-                                contentItems = _orchardServices.ContentManager.Query(VersionOptions.Latest, queryName).List();
-                            }
-                            else
-                                contentItems = _orchardServices.ContentManager.Query(VersionOptions.Published, queryName).List();
-                            //contentItems = _calendarService.GetProjectionContentItems(new QueryModel { Name = "Published_" + queryName });
-                            //contentItems = _orchardServices.ContentManager.Query(VersionOptions.Published, queryName).List();
-
-                            if (allContentItems == null)
-                                allContentItems = contentItems;
-                            else
-                                allContentItems = allContentItems.Select(x => x).Concat(contentItems.Select(y => y));
-                        }
-
-                        /*if (string.IsNullOrEmpty(attendeeName) && possessedName.StartsWith("View_Attendee"))
-                        {
-                            attendeeName = possessedName.Substring("View_".Length);
-
-                        }*/
-                    }
-                }
-            }
+            allContentItems = _attendeeService.GetAttendees(user, null, inModel.ContentType);
 
             if (allContentItems == null)
                 return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
@@ -117,12 +80,12 @@ namespace Meso.Volunteer.Controllers
             Dictionary<string, VolunteerSummaryApiViewModel> list = new Dictionary<string, VolunteerSummaryApiViewModel>();
 
 
-            foreach(JObject occurrence in occurrences)
+            foreach (JObject occurrence in occurrences)
             {
                 DateTime startDate = (DateTime)occurrence["StartDate"];
                 DateTime endDate = (DateTime)occurrence["EndDate"];
 
-                int days = (endDate.Date - startDate.Date).Days;
+                int days = (endDate.Date - startDate.Date).Days + 1;
 
                 string place = occurrence["Place"].ToString();
                 if (inModel.Place != null && !inModel.Place.Equals(place))
@@ -130,10 +93,10 @@ namespace Meso.Volunteer.Controllers
 
                 foreach (JToken attendee in occurrence["Attendee"])
                 {
-                    if(inModel.AttendState != null)
+                    if (inModel.AttendState != null)
                     {
                         var state = attendee["AttendState"];
-                        bool isAttended = string.IsNullOrEmpty(state.ToString())  ? false : (bool)attendee["AttendState"];
+                        bool isAttended = string.IsNullOrEmpty(state.ToString()) ? false : (bool)attendee["AttendState"];
 
                         if (inModel.AttendState != isAttended)
                             continue;
@@ -149,13 +112,13 @@ namespace Meso.Volunteer.Controllers
                             list[account].PlaceDays[place] += days;
                         }
                         else
-                            list[account].PlaceDays.Add(place, days); 
+                            list[account].PlaceDays.Add(place, days);
                         list[account].TotalDays += days;
-                        list[account].Attendee.Add(new { Id = occurrence["Id"], Place = place , StartDate = startDate, EndDate = endDate, Days = days });
+                        list[account].Attendee.Add(new { Id = occurrence["Id"], Place = place, StartDate = startDate, EndDate = endDate, Days = days });
                     }
                     else
                     {
-                        VolunteerSummaryApiViewModel model = new VolunteerSummaryApiViewModel { UserName = account, Name = name, TotalDays = days};
+                        VolunteerSummaryApiViewModel model = new VolunteerSummaryApiViewModel { UserName = account, Name = name, TotalDays = days };
                         model.PlaceDays = new Dictionary<string, int>();
                         model.PlaceDays.Add(place, days);
                         model.Attendee = new List<object>();
@@ -166,11 +129,57 @@ namespace Meso.Volunteer.Controllers
             }
 
             if (list.Count == 0)
-                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
 
             return Ok(new ResultViewModel { Content = list.Values.OrderBy(x => x.UserName), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
+
+        [HttpPost]
+        public IHttpActionResult PointsSummary(VolunteerApiViewMode inModel)
+        {
+            if (inModel == null || inModel.ContentType == null)
+                return BadRequest();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.BadRequest) });
+
+            IEnumerable<ContentItem> contentItems = null;
+            IUser user = _authenticationService.GetAuthenticatedUser();
+
+            contentItems = _attendeeService.GetAttendees(user, null, inModel.ContentType).Where(x=>x.IsPublished());
+
+            if (contentItems == null)
+                return Ok(new ResultViewModel { Content = Enumerable.Empty<object>(), Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
+
+            IEnumerable<JObject> caculatePointsObjects = contentItems.Where(x => x.As<CommonPart>().Container != null
+            && _calendarService.DateInRange(x.As<CommonPart>().Container.As<SchedulePart>(), inModel.StartDate, inModel.EndDate))
+                .Select(a => CaculatePointsObject(a)).Where(x=>x!=null);
+
+            var data = caculatePointsObjects.GroupBy(x => new { UserName = x["UserName"].ToString(), Name = x["Name"].ToString() } , (key, group) => new
+            {
+                UserName = key.UserName,
+                Name = key.Name, 
+                Points = group.Sum(k => (int)k["AttendPoint"])
+            }).OrderBy(d => d.UserName).ToList();
+
+            return Ok(new ResultViewModel { Content = data, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+        }
+
+        private JObject CaculatePointsObject(ContentItem item)
+        {
+            JObject inModel = new JObject();
+            inModel.Add(new JProperty("AttendState", true));
+            JObject attendee = _attendeeService.GetAttendee(Url, item, inModel, true);
+            if (attendee == null)
+                return null;
+
+            object obj = new
+            {
+                Name = attendee["User"]["Name"],
+                UserName = attendee["User"]["UserName"],
+                AttendPoint = attendee["AttendPoint"] == null ? 0 : (int)attendee["AttendPoint"]
+            };
+
+            return JObject.FromObject(obj);
+        }
 
     }
 }

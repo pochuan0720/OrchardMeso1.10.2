@@ -46,7 +46,7 @@ namespace Meso.Volunteer.Handlers
                     _model.EndTime = _dateLocalizationServices.ConvertToLocalizedTimeString(end, new DateLocalizationOptions() { EnableTimeZoneConversion = false });
                     return true;
                 }
-                else if (typeof(LayoutPartViewModel) == model.GetType())// && root["Form"] != null)
+                else if (typeof(LayoutPartViewModel) == model.GetType() && root["Form"] != null)
                 {
                     dynamic _model = model;
                     LayoutEditor editor = _model.LayoutEditor;

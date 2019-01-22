@@ -84,9 +84,21 @@ namespace Meso.TyMetro.Services {
                     inModel.Code = inModel.ArrCode;
             }*/
             //}
-
-            var data = new GoTimeListService().Query(depGoTime.ToQueryModel());
-            return data.Data.Select(d => new GoTimeViewModel(d)).OrderBy(x => x.GoTime).GroupBy(row => row.TimeTable).FirstOrDefault();
+            CalendarViewModel calendar = new CalendarViewModel { date = DateTime.Now.Date};
+            var dataCandendar = new CalendarService().Query(calendar.ToQueryModel());
+            CalendarDataModel ddataModel = dataCandendar.Data.Count > 0 ? dataCandendar.Data.First() : null;
+            if (ddataModel != null)
+            {
+                calendar = new CalendarViewModel(ddataModel);
+                depGoTime.TimeTable = calendar.timetable;
+                var data = new GoTimeListService().Query(depGoTime.ToQueryModel());
+                return data.Data.Select(d => new GoTimeViewModel(d)).OrderBy(x => x.GoTime);
+            }
+            else
+            {
+                var data = new GoTimeListService().Query(depGoTime.ToQueryModel());
+                return data.Data.Select(d => new GoTimeViewModel(d)).OrderBy(x => x.GoTime).GroupBy(row => row.TimeTable).FirstOrDefault();
+            }
         }
 
         public GoTimeViewModel GetArrGoTime(JObject jReservation, string depGoTime, string carNumber)

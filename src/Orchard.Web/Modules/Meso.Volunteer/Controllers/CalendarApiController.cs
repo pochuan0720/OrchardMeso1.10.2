@@ -341,14 +341,31 @@ namespace Meso.Volunteer.Controllers
 
             _orchardServices.ContentManager.UpdateEditor(schedule, _updateModelHandler.SetData(inModel));
 
-            if (inModel["IsPublished"] != null && (bool)inModel["IsPublished"])
+            if (inModel["IsPublished"] != null)
             {
-                _orchardServices.ContentManager.Publish(schedule);
-                if (inModel["IsMailTo"] != null && (bool)inModel["IsMailTo"])
-                    _calendarService.Notification(schedule, inModel["ContentType"].ToString() + "Notify");
+                if ((bool)inModel["IsPublished"])
+                {
+                    _orchardServices.ContentManager.Publish(schedule);
+                    if (inModel["IsMailTo"] != null && (bool)inModel["IsMailTo"])
+                        _calendarService.Notification(schedule, inModel["ContentType"].ToString() + "Notify");
+                }
+                else
+                    _orchardServices.ContentManager.Unpublish(schedule);
             }
             else
-                _orchardServices.ContentManager.Unpublish(schedule);
+            {
+                var _schedule = _orchardServices.ContentManager.Get(id, VersionOptions.Latest);
+
+                if (_schedule.IsPublished())
+                {
+                    _orchardServices.ContentManager.Publish(schedule);
+                    if (inModel["IsMailTo"] != null && (bool)inModel["IsMailTo"])
+                        _calendarService.Notification(schedule, inModel["ContentType"].ToString() + "Notify");
+                }
+                else
+                    _orchardServices.ContentManager.Unpublish(schedule);
+
+            }
 
             _orchardServices.Notifier.Information(T("schedule information updated"));
 

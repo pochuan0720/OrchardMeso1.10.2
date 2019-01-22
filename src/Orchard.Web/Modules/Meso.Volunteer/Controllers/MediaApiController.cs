@@ -92,44 +92,69 @@ namespace Meso.Volunteer.Controllers {
                 pager = new Pager(_siteService.GetSiteSettings(), _pager.Page, _pager.PageSize, mediaPartsCount);
             }
 
-            IList<MediaPart> mediaParts;
+            IList<object> mediaParts;
 
             if (pager != null)
             {
-                mediaParts = _mediaLibraryService.GetMediaContentItems(folderPath, pager.GetStartIndex(), pager.PageSize, "created", "", VersionOptions.Latest).ToArray();
+                mediaParts = _mediaLibraryService.GetMediaContentItems(folderPath, pager.GetStartIndex(), pager.PageSize, "created", "", VersionOptions.Latest)
+                    .Select(m => GetMediaObject(m)).OrderByDescending(o => o["Position"]).ToArray();
                 pager.PageSize = mediaParts.Count;
             }
             else
-                mediaParts = _mediaLibraryService.GetMediaContentItems(folderPath, "created", "", VersionOptions.Latest).ToArray();
+                mediaParts = _mediaLibraryService.GetMediaContentItems(folderPath, "created", "", VersionOptions.Latest)
+                    .Select(m => GetMediaObject(m)).OrderByDescending( o => o["Position"]).ToArray();
 
 
             var viewModel = new 
             {
                 FolderPath = folderPath,
-                Data = mediaParts.ToList<MediaPart>(),
+                Data = mediaParts.ToList<object>(),
                 Pager = pager
             };
 
             return Ok(new ResultViewModel { Content = viewModel, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
+        private int GetFieldValue(object item)
+        {
+            if(item != null && item.GetType().ToString().Equals("Orchard.Fields.Fields.NumericField"))
+            {
+                dynamic field = item;
+                if (field.Value != null)
+                    return Convert.ToInt32(field.Value);
+            }
 
-        public IHttpActionResult index(string folderPath, string type, int? replaceId = null) {
-            if (!Services.Authorizer.Authorize(Orchard.MediaLibrary.Permissions.ManageOwnMedia)) {
+            return 0;
+        }
+        private JObject GetMediaObject(MediaPart item)
+        {
+            JObject obj = JObject.FromObject(item);
+            obj.Add(new JProperty("Position", GetFieldValue(item.Fields.FirstOrDefault())));
+            return obj;
+        }
+
+
+        public IHttpActionResult index(string folderPath, string type, int? replaceId = null)
+        {
+            if (!Services.Authorizer.Authorize(Orchard.MediaLibrary.Permissions.ManageOwnMedia))
+            {
                 return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "" });
             }
 
             // Check permission
-            if (!Services.Authorizer.Authorize(Orchard.MediaLibrary.Permissions.ManageMediaContent) && !_mediaLibraryService.CanManageMediaFolder(folderPath)) {
+            if (!Services.Authorizer.Authorize(Orchard.MediaLibrary.Permissions.ManageMediaContent) && !_mediaLibraryService.CanManageMediaFolder(folderPath))
+            {
                 return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not allowed to manage Media" });
             }
 
-            var viewModel = new ImportMediaViewModel {
+            var viewModel = new ImportMediaViewModel
+            {
                 FolderPath = folderPath,
                 Type = type,
             };
 
-            if (replaceId != null) {
+            if (replaceId != null)
+            {
                 var replaceMedia = Services.ContentManager.Get<MediaPart>(replaceId.Value);
                 if (replaceMedia == null)
                     return NotFound();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
@@ -463,6 +488,15 @@ namespace Meso.Volunteer.Controllers {
 
             if (!Services.Authorizer.Authorize(Orchard.MediaLibrary.Permissions.ManageOwnMedia, content, T("Couldn't edit schedule")))
                 return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Couldn't edit schedule" });
+
+            if (inModel["Position"] != null)
+            {
+                MediaPart media = content.As<MediaPart>();
+                dynamic field = media.Fields.First();
+                if (field != null)
+                    field.Value = Convert.ToDecimal(inModel["Position"]);
+
+            }
 
             Services.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(inModel));
 

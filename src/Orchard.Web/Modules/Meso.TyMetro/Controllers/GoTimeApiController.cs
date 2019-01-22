@@ -32,6 +32,7 @@ namespace Meso.TyMetro.Controllers
         [HttpGet]
         public IHttpActionResult Get([FromUri]GoTimeViewModel inModel)
         {
+            //取得出發站時刻表
             if (inModel.ARId > 0)
             {
                 ContentItem item = _orchardServices.ContentManager.Get(inModel.ARId);

@@ -106,7 +106,9 @@
     <Compile Include="Routing\UsersApiRoutes.cs" />
     <Compile Include="Routing\NewsApiRoutes.cs" />
     <Compile Include="Routing\ReportApiRoutes.cs" />
+    <Compile Include="Services\AttendeeService.cs" />
     <Compile Include="Services\CalendarService.cs" />
+    <Compile Include="Services\IAttendeeService.cs" />
     <Compile Include="Services\ICalendarService.cs" />
     <Compile Include="ViewModels\Filter.cs" />
     <Compile Include="ViewModels\UsersViewModel.cs" />

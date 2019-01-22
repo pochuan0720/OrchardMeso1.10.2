@@ -1,4 +1,4 @@
-using System.Linq;
+﻿using System.Linq;
 using Orchard.ContentManagement;
 using Orchard.DisplayManagement;
 using Orchard.Localization;
@@ -23,6 +23,10 @@ using System.Collections.Generic;
 using System.Web;
 using Meso.Volunteer.ViewModels;
 using Orchard.Roles.Services;
+using Orchard.Core.Common.Models;
+using Meso.Volunteer.Services;
+using Orchard.Projections.Models;
+using Orchard.Schedule.Models;
 
 namespace Meso.Volunteer.Controllers {
     [Authorize]
@@ -33,6 +37,7 @@ namespace Meso.Volunteer.Controllers {
         private readonly IUserEventHandler _userEventHandlers;
         private readonly ISiteService _siteService;
         private readonly IAuthenticationService _authenticationService;
+        private readonly IAttendeeService _attendeeService;
         private readonly IUpdateModelHandler _updateModelHandler;
 
         public AccountApiController(
@@ -44,6 +49,7 @@ namespace Meso.Volunteer.Controllers {
             IUserEventHandler userEventHandlers,
             ISiteService siteService,
             IAuthenticationService authenticationService,
+            IAttendeeService attendeeService,
             IUpdateModelHandler updateModelHandler) {
             _roleService = roleService;
             Services = services;
@@ -52,6 +58,7 @@ namespace Meso.Volunteer.Controllers {
             _userEventHandlers = userEventHandlers;
             _siteService = siteService;
             _authenticationService = authenticationService;
+            _attendeeService = attendeeService;
             _updateModelHandler = updateModelHandler;
             T = NullLocalizer.Instance;
             Shape = shapeFactory;
@@ -77,7 +84,7 @@ namespace Meso.Volunteer.Controllers {
                 foreach(string role in user.ContentItem.As<UserRolesPart>().Roles)
                 {
                     roles.Add(role);
-                    if (role.EndsWith("�޲z��"))
+                    if (role.EndsWith("管理員"))
                         roles.Add(role.Substring(0, role.Length -3));
                 }
                 filter = new Filter { UserRoles = roles.ToArray() };
@@ -137,6 +144,21 @@ namespace Meso.Volunteer.Controllers {
         {
             var model = Services.ContentManager.BuildEditor(user);
             JObject obj = UpdateModelHandler.GetData(JObject.FromObject(user), model);
+
+            if (!Services.Authorizer.Authorize(Orchard.Users.Permissions.ManageUsers, T("Not authorized to manage users")))
+            {
+                if(obj["IsOpenMobileTel"] != null)
+                {
+                    if(string.IsNullOrEmpty(obj["IsOpenMobileTel"].ToString()) || !(bool)obj["IsOpenMobileTel"])
+                        obj["MobileTel"] = "*";
+                }
+                if(obj["IsOpenEmail"] != null)
+                {
+                    if (string.IsNullOrEmpty(obj["IsOpenEmail"].ToString()) || !(bool)obj["IsOpenEmail"])
+                        obj["Email"] = "*";
+                }
+            }
+
             if (filter.UserRoles != null && filter.UserRoles.Length > 0)
             {
                 foreach (string role in filter.UserRoles)
@@ -168,11 +190,14 @@ namespace Meso.Volunteer.Controllers {
             else
             {
                 var model = Services.ContentManager.BuildEditor(user);
-
-                return Ok(new ResultViewModel { Content = UpdateModelHandler.GetData(JObject.FromObject(user), model), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+                JObject obj = UpdateModelHandler.GetData(JObject.FromObject(user), model);
+                obj.Add(new JProperty("Points", CaculatePoints(user)));
+                return Ok(new ResultViewModel { Content = obj, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
             }
 
-            
+
+
+
         }
 
         [HttpPost]
@@ -181,9 +206,6 @@ namespace Meso.Volunteer.Controllers {
             if (inModel == null || inModel["Id"] == null)
                 return BadRequest();
 
-            if (!Services.Authorizer.Authorize(Orchard.Users.Permissions.ManageUsers, T("Not authorized to manage users")))
-                return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
-
             int Id = (int)inModel["Id"];
             var user = Services.ContentManager.Get<UserPart>(Id, VersionOptions.DraftRequired);
 
@@ -191,6 +213,14 @@ namespace Meso.Volunteer.Controllers {
             {
                 return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.NotFound.ToString("d"), Message = HttpWorkerRequest.GetStatusDescription((int)HttpStatusCode.NotFound) });
             }
+
+            IUser aUser = _authenticationService.GetAuthenticatedUser();
+            bool self = aUser.Id == Id;
+
+            if (!Services.Authorizer.Authorize(Orchard.Users.Permissions.ManageUsers, T("Not authorized to manage users")) && !self)
+                return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
+
+
 
             /*if (!_userService.VerifyUserUnicity(id, inModel.UserName, inModel.Email))
             {
@@ -284,6 +314,7 @@ namespace Meso.Volunteer.Controllers {
             string[] roles = user.As<UserRolesPart>().Roles.ToArray();
             JObject obj = JObject.FromObject(user);
             obj.Add(new JProperty("UserRoles", roles));
+            obj.Add(new JProperty("Points", CaculatePoints(user)));
             return Ok(new ResultViewModel { Content = UpdateModelHandler.GetData(obj, model), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
 
@@ -311,13 +342,19 @@ namespace Meso.Volunteer.Controllers {
                 return InternalServerError();
 
 
+            if (inModel["IsOpenMobileTel"] == null)
+                inModel.Add(new JProperty("IsOpenMobileTel", false));
+
+            if (inModel["IsOpenEmail"] == null)
+                inModel.Add(new JProperty("IsOpenEmail", false));
+
             /*try
             {
                 var editor = Shape.EditorTemplate(TemplateName: "Parts/Roles.UserRoles", Model: Activator.CreateInstance(Type.GetType("Orchard.Roles.ViewModels.UserRolesViewModel, Orchard.Roles", true)), Prefix: null);
                 Services.ContentManager.BuildEditor(user);
             }catch (Exception e) { };*/
             //Services.ContentManager.BuildEditor(user);
-                
+
             var model = Services.ContentManager.UpdateEditor(user, _updateModelHandler.SetData(inModel));
             return Ok(new ResultViewModel { Content = new { Id = user.Id}, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
         }
@@ -329,6 +366,52 @@ namespace Meso.Volunteer.Controllers {
                 return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
 
             return register(inModel);
+        }
+
+        private string CaculatePoints(IUser user)
+        {
+            IEnumerable<ContentItem> contentItems = null;
+            contentItems = _attendeeService.GetAttendees(user, new QueryModel { Name = "Attendee" });
+            string poines = "";
+            if (contentItems == null)
+            {
+                poines = DateTime.Now.Year.ToString() + "(0點)";
+            }
+            else
+            {
+
+                IEnumerable<JObject> caculatePointsObjects = contentItems.Where(x => x.As<CommonPart>().Container != null).Select(a => CaculatePointsObject(a)).Where(x=>x!=null);
+                var data = caculatePointsObjects.GroupBy(x => (int)x["Year"], (key, group) => new
+                {
+                    yr = key,
+                    tCharge = group.Sum(k => (int)k["AttendPoint"])
+                }).OrderBy(d => d.yr).ToList();
+
+
+                foreach(var d in data)
+                {
+                    poines += d.yr + "(" + d.tCharge + "點) ";
+                }
+            }
+            return poines;
+        }
+
+        private JObject CaculatePointsObject(ContentItem item)
+        {
+            JObject inModel = new JObject();
+            inModel.Add(new JProperty("AttendState", true));
+            JObject attendee = _attendeeService.GetAttendee(Url, item, inModel, false);
+            if (attendee == null)
+                return null;
+
+            SchedulePart schedule = item.As<CommonPart>().Container.As<SchedulePart>();
+            object obj = new
+            {
+                Year = schedule.StartDate.Year,
+                AttendPoint = attendee["AttendPoint"] == null ? 0 : (int)attendee["AttendPoint"]
+            };
+
+            return JObject.FromObject(obj);
         }
     }
 }

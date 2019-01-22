@@ -64,9 +64,14 @@ namespace Meso.TyMetro.Controllers
             IEnumerable<ContentItem> contentItems = _projectionManager.GetContentItems(new QueryModel { Name = "AccessibilityReservation" });
             IUser user = _authenticationService.GetAuthenticatedUser();
 
+            IEnumerable<JObject> items = null;
             UserRolesPart rolesPart = user.As<UserRolesPart>();
             if (rolesPart.Roles.Contains("Admin") || rolesPart.Roles.Contains("StaffAdmin"))
-                return Ok(new ResultViewModel { Content = contentItems.Select(x => _reservationService.GetContent(x)), Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+            {
+                items = contentItems.Select(x => _reservationService.GetContent(x));
+                items = items.Where(x => Check((DateTime)x[whichDateTime], seconds));
+                return Ok(new ResultViewModel { Content = items, Success = true, Code = HttpStatusCode.OK.ToString("d"), Message = "" });
+            }
             else
             {
                 StationViewModel station = null;
@@ -79,14 +84,14 @@ namespace Meso.TyMetro.Controllers
 
                 BodyPart bodyPart = user.ContentItem.As<BodyPart>();
                 UserBodyViewModel bodyModel = JObject.Parse(bodyPart.Text).ToObject<UserBodyViewModel>();
-
-                IEnumerable<JObject> items = null;
+                
                 if (whichDateTime.Equals("StartDateTime"))
                 {
                     items = contentItems.Select(x => _reservationService.GetContent(x))
                         .Where(jjReservation => jjReservation["DepStation"]["Id"].ToString().Equals(bodyModel.Station.Id));
 
-                }else if(whichDateTime.Equals("ArrDateTime"))
+                }
+                else if (whichDateTime.Equals("ArrDateTime"))
                 {
                     items = contentItems.Select(x => _reservationService.GetContent(x))
                         .Where(jjReservation => jjReservation["ArrStation"]["Id"].ToString().Equals(bodyModel.Station.Id));

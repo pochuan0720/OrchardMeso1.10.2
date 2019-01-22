@@ -14,7 +14,8 @@ namespace Meso.TyMetro.ViewModels
         public string Code { get; set; }
         public string Min { get; set; }
         public string Hour { get; set; }
-        //public string CarType { get; set; }
+        [JsonProperty]
+        public string CarType { get; set; }
         [JsonProperty]
         public string DepOrArr { get; set; }
         [JsonProperty]
@@ -43,7 +44,7 @@ namespace Meso.TyMetro.ViewModels
             Code = inMoidel.StationID;
             Min = inMoidel.Min;
             Hour = inMoidel.Hour;
-            //CarType = inMoidel.CarType;
+            CarType = inMoidel.CarType;
             DepOrArr = inMoidel.DepOrArr;
             GoTime = (TimeSpan)inMoidel.GoTime;
             //GoDateTimeUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.Now.Date.Add(GoTime));
@@ -56,6 +57,7 @@ namespace Meso.TyMetro.ViewModels
             return new GoTimeListQueryModel
             {
                 StationID = Code,
+                TimeTable = TimeTable,
                 DepOrArr = DepOrArr,
                 CarDirection = CarDirection,
                 IsDelete = IsDelete
