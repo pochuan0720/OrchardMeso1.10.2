@@ -217,10 +217,12 @@ namespace Meso.Volunteer.Controllers
             object outObj = _calendarService.GetOccurrenceViewModel(new ScheduleOccurrence(schedule, schedule.StartDate), new ScheduleData(containerItem, Url, _slugService, _orchardServices));
             JObject outModel = JObject.FromObject(outObj);
 
-            //判斷此服勤狀態
-            if (outModel["FormState"] == null || !outModel["FormState"].ToString().Equals("審核通過"))
-                return Ok(new ResultViewModel { Content = outModel, Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = "狀態非審核通過" });
-
+            //判斷此服勤狀態 for解說
+            if (contentType.Equals(inModel["ContentType"].ToString()))
+            {
+                if (outModel["FormState"] == null || !outModel["FormState"].ToString().Equals("審核通過"))
+                    return Ok(new ResultViewModel { Content = outModel, Success = false, Code = HttpStatusCode.Forbidden.ToString("d"), Message = "狀態非審核通過" });
+            }
 
             //IContentQuery<ContentItem> contentItems = _orchardServices.ContentManager.Query(VersionOptions.Published, containerItem.ContentType);
             IEnumerable<ContentItem> contentItems = null;

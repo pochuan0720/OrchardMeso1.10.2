@@ -1,19 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
 using Orchard.Schedule.Models;
-using Orchard.Environment.Extensions;
 using Orchard.ContentManagement;
 using Orchard.Projections.Services;
-using Orchard.Schedule.ViewModels;
-using Orchard;
-using Orchard.Core.Common.Handlers;
-using Orchard.Core.Common.Models;
 using Orchard.Projections.Models;
 using Orchard.Core.Containers.Services;
-using Orchard.Core.Containers.Models;
-using Orchard.Security;
 
 namespace Orchard.Schedule.Services {
 

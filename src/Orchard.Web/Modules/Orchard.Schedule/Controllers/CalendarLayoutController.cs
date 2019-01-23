@@ -1,14 +1,7 @@
 ﻿using Orchard.Schedule.Models;
 using Orchard.Schedule.Services;
-using Orchard.Schedule.Settings;
-using Orchard;
 using Orchard.Autoroute.Services;
 using Orchard.ContentManagement;
-using Orchard.Core.Contents;
-using Orchard.Core.Title.Models;
-using Orchard.Environment.Extensions;
-using Orchard.Projections.Services;
-using Orchard.Tags.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;

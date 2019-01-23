@@ -175,7 +175,7 @@ namespace Meso.Volunteer.Controllers
             {
                 Name = attendee["User"]["Name"],
                 UserName = attendee["User"]["UserName"],
-                AttendPoint = attendee["AttendPoint"] == null ? 0 : (int)attendee["AttendPoint"]
+                AttendPoint = attendee["AttendPoint"] == null || string.IsNullOrEmpty(attendee["AttendPoint"].ToString()) ? 0 : (int)attendee["AttendPoint"]
             };
 
             return JObject.FromObject(obj);

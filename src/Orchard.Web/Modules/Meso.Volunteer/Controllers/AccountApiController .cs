@@ -380,7 +380,7 @@ namespace Meso.Volunteer.Controllers {
             else
             {
 
-                IEnumerable<JObject> caculatePointsObjects = contentItems.Where(x => x.As<CommonPart>().Container != null).Select(a => CaculatePointsObject(a)).Where(x=>x!=null);
+                IEnumerable<JObject> caculatePointsObjects = contentItems.Where(x => x.As<CommonPart>().Container != null && x.As<CommonPart>().Owner.Id == user.Id).Select(a => CaculatePointsObject(a)).Where(x=>x!=null);
                 var data = caculatePointsObjects.GroupBy(x => (int)x["Year"], (key, group) => new
                 {
                     yr = key,
@@ -408,7 +408,7 @@ namespace Meso.Volunteer.Controllers {
             object obj = new
             {
                 Year = schedule.StartDate.Year,
-                AttendPoint = attendee["AttendPoint"] == null ? 0 : (int)attendee["AttendPoint"]
+                AttendPoint = attendee["AttendPoint"] == null || string.IsNullOrEmpty(attendee["AttendPoint"].ToString()) ? 0 : (int)attendee["AttendPoint"]
             };
 
             return JObject.FromObject(obj);

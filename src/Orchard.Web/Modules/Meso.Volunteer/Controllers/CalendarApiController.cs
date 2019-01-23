@@ -346,7 +346,7 @@ namespace Meso.Volunteer.Controllers
                 if ((bool)inModel["IsPublished"])
                 {
                     _orchardServices.ContentManager.Publish(schedule);
-                    if (inModel["IsMailTo"] != null && (bool)inModel["IsMailTo"])
+                    if (inModel["IsMailTo"] != null && inModel["IsMailTo"].HasValues && (bool)inModel["IsMailTo"])
                         _calendarService.Notification(schedule, inModel["ContentType"].ToString() + "Notify");
                 }
                 else
@@ -359,7 +359,7 @@ namespace Meso.Volunteer.Controllers
                 if (_schedule.IsPublished())
                 {
                     _orchardServices.ContentManager.Publish(schedule);
-                    if (inModel["IsMailTo"] != null && (bool)inModel["IsMailTo"])
+                    if (inModel["IsMailTo"] != null && inModel["IsMailTo"].HasValues && (bool)inModel["IsMailTo"])
                         _calendarService.Notification(schedule, inModel["ContentType"].ToString() + "Notify");
                 }
                 else

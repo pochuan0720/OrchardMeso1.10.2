@@ -161,10 +161,6 @@
       <Project>{d10ad48f-407d-4db5-a328-173ec7cb010f}</Project>
       <Name>Orchard.Roles</Name>
     </ProjectReference>
-    <ProjectReference Include="..\Orchard.Tags\Orchard.Tags.csproj">
-      <Project>{5d0f00f0-26c9-4785-ad61-b85710c60eb0}</Project>
-      <Name>Orchard.Tags</Name>
-    </ProjectReference>
     <ProjectReference Include="..\Orchard.Tokens\Orchard.Tokens.csproj">
       <Project>{6f759635-13d7-4e94-bcc9-80445d63f117}</Project>
       <Name>Orchard.Tokens</Name>

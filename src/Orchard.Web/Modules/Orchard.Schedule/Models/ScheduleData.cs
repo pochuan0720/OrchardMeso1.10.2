@@ -1,10 +1,7 @@
 ﻿using Orchard.Schedule.Settings;
-using Orchard;
 using Orchard.Autoroute.Services;
 using Orchard.ContentManagement;
-using Orchard.Core.Contents;
 using Orchard.Core.Title.Models;
-using Orchard.Tags.Models;
 using System.Linq;
 using System.Web.Http.Routing;
 using Orchard.Core.Common.Models;
@@ -21,7 +18,8 @@ namespace Orchard.Schedule.Models {
             var schedulePart = content.As<SchedulePart>();
             var titlePart = content.As<TitlePart>();
             var bodyPart = content.As<BodyPart>();
-            var tagsPart = content.As<TagsPart>();
+            //Meso Frank mark Tag, 20190123
+            //var tagsPart = content.As<TagsPart>();
 
             var scheduleSettings = schedulePart.TypePartDefinition.Settings.GetModel<ScheduleSettings>();
             var metadata = content.ContentManager.GetItemMetadata(content);
@@ -31,7 +29,7 @@ namespace Orchard.Schedule.Models {
             Body = (bodyPart != null) ? bodyPart.Text : "Untitled";
             DisplayUrl = url.Route("", metadata.DisplayRouteValues);
 
-            Tags = tagsPart != null ? tagsPart.CurrentTags.ToArray() : null;
+            //Tags = tagsPart != null ? tagsPart.CurrentTags.ToArray() : null;
 
             CanDelete = orchard.Authorizer.Authorize(Core.Contents.Permissions.DeleteContent, content);
 
