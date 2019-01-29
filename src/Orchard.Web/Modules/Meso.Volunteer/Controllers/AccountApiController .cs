@@ -68,6 +68,14 @@ namespace Meso.Volunteer.Controllers {
         public IOrchardServices Services { get; set; }
         public Localizer T { get; set; }
 
+        int MinPasswordLength
+        {
+            get
+            {
+                return _membershipService.GetSettings().MinRequiredPasswordLength;
+            }
+        }
+
         [HttpPost]
         public IHttpActionResult query(JObject inModel) {
 
@@ -220,7 +228,22 @@ namespace Meso.Volunteer.Controllers {
             if (!Services.Authorizer.Authorize(Orchard.Users.Permissions.ManageUsers, T("Not authorized to manage users")) && !self)
                 return Unauthorized();// Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.Unauthorized.ToString("d"), Message = "Not authorized to manage users" });
 
+            if (inModel["Password"] != null && inModel["ConfirmPassword"] != null)
+            {
+                string password = inModel["Password"].ToString();
+                string confirmPassword = inModel["ConfirmPassword"].ToString();
 
+                if (password == null || password.Length < MinPasswordLength)
+                {
+                    return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = T("You must specify a password of {0} or more characters.", MinPasswordLength).ToString() });
+                }
+                if (!String.Equals(password, confirmPassword, StringComparison.Ordinal))
+                {
+                    return Ok(new ResultViewModel { Success = false, Code = HttpStatusCode.BadRequest.ToString("d"), Message = T("The new password and confirmation password do not match.").ToString() });
+                }
+
+                _membershipService.SetPassword(user, password);
+            }
 
             /*if (!_userService.VerifyUserUnicity(id, inModel.UserName, inModel.Email))
             {

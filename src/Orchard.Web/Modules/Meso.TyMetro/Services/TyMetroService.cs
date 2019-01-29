@@ -10,6 +10,8 @@ using TYMetro.Management.Api.Models.Sites;
 using TYMetro.Management.Api.Models.Time;
 using TYMetro.Management.Api.Services.Sites;
 using TYMetro.Management.Api.Services.Time;
+using GoTimeViewModel = Meso.TyMetro.ViewModels.GoTimeViewModel;
+using StationViewModel = Meso.TyMetro.ViewModels.StationViewModel;
 
 namespace Meso.TyMetro.Services {
 

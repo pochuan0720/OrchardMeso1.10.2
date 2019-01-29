@@ -60,7 +60,7 @@ namespace Meso.Volunteer.Handlers
 
                     JObject layout = JObject.Parse(json);
                     var newItems = new JArray();
-                    if (root["Form"] != null)
+                    if (root["Form"].HasValues)
                     {
                         JToken items = root["Form"];
 

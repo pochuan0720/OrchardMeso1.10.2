@@ -179,6 +179,11 @@ namespace Meso.Volunteer.Controllers
             if (content == null)
                 return InternalServerError();
 
+            if (contentType.StartsWith("Event") && inModel["Form"] == null)
+            {
+                inModel.Add(new JProperty("Form", null));
+            }
+
             _orchardServices.ContentManager.Create(content, VersionOptions.Draft);
             var editorShape = _orchardServices.ContentManager.UpdateEditor(content, _updateModelHandler.SetData(inModel));
             if (inModel["IsPublished"] != null && (bool)inModel["IsPublished"])
